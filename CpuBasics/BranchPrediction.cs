@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Diagnosers;
 
 namespace CpuBasics
 {
+    [HardwareCounters(HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
     public class BranchPrediction
     {
         private int[] _sorted = new int[32768];
@@ -22,8 +24,27 @@ namespace CpuBasics
             Array.Sort(_sorted);
         }
 
+
         [Benchmark]
-        public int SortedArray()
+        public int SortedBranchless()
+        {
+            int sum = 0;
+            foreach (var i in _sorted)
+                sum += i;
+            return sum;
+        }
+
+        [Benchmark]
+        public int UnsortedBranchless()
+        {
+            int sum = 0;
+            foreach (var i in _unsorted)
+                sum += i;
+            return sum;
+        }
+
+        [Benchmark]
+        public int SortedBranch()
         {
             int sum = 0;
             foreach (var i in _sorted)
@@ -33,7 +54,7 @@ namespace CpuBasics
         }
 
         [Benchmark]
-        public int UnsortedArray()
+        public int UnsortedBranch()
         {
             int sum = 0;
             foreach (var i in _unsorted)
@@ -41,5 +62,7 @@ namespace CpuBasics
                     sum += i;
             return sum;
         }
+
+ 
     }
 }
