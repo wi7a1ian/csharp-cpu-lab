@@ -89,19 +89,4 @@ namespace CpuBasics
             return partialIntegrals.Sum();
         }
     }
-
-    #region Spoiler
-    /*
-     * When working with threads where large object is schared among them i.e: array), 
-     * when one thread modifies block of cached data, all other threads that work with 
-     * the same copy have to re-read the data from the memory, aka invalidate. 
-     * This is speed up with MESI protocol that requires cache to cache transfer on a miss if the block resides in another cache.
-     * 
-     * When such unintentional cache sharing happens, parallel method should use private memory and then update shared memory when done, 
-     * or let them modify/access only memory regions that are CL1 size (=~ 64kb) bytes away from each other.
-     * 
-     * Remember:
-     * - Design for parallelization
-     */
-    #endregion
 }

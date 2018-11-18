@@ -90,19 +90,4 @@ namespace CpuBasics
             return new Tuple<int, int>(min, max);
         }
     }
-
-    #region Spoiler
-    /* 
-     * ILP option doesn't help because compiler has to do boundary checks for us.
-     * 
-     * Parallel is not fastest because of data sharing (cache invalidation).
-     * 
-     * Considering single-instruction- multiple data (SIMD) does bring best performance boost when working with arrays. 
-     * This can be achieved via System.Numerics.Vectorization.Vector<T> class in C#.
-     * 
-     * Remember:
-     * - Avoid nonsequential access
-     * - Consider SIMD operations (Vector<T>)
-     */
-    #endregion
 }
