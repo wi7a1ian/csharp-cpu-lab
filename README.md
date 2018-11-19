@@ -1,7 +1,9 @@
 # csharp-cpu-lab (IN PROGRESS)
-![](./blob/master/Img/CPUCache.PNG)
 
-![](./blob/master/Img/CPU-front-n-backend.png)
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPUCache.PNG)
+
+### Pipeline of a modern high-performance CPU
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-front-n-backend.png)
 
 ## Branch prediction
 #### Problem
@@ -87,7 +89,7 @@ This applies to reading as well as writing data. Multidimensional arrays should 
 This reflects the order in which the elements are stored in memory. 
 
 #### Hyperthreading
-Usually L1 cache lines are private, but enabling hyperthreads will make them share L1 cache which in turns cause resource contingency (cache invalidation). Projects that strongly base on proper L1 cache utilization should turn this feature off.
+Usually L1 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L1 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
 
 #### Guidelines
 Try to answer two questions:
