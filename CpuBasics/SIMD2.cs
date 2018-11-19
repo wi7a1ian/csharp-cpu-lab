@@ -54,22 +54,6 @@ namespace CpuBasics
         }
 
         [Benchmark]
-        public float DotProduct()
-        {
-            float sum = 0.0f;
-            for (int i = 0; i < a.Length; ++i)
-                sum += a[i] * b[i];
-            return sum;
-        }
-
-        [Benchmark]
-        public float DotProductSimd()
-        {
-            // TODO Implement this
-            return 0.0f;
-        }
-
-        [Benchmark]
         public void MatrixMultNaive()
         {
             for (int i = 0; i < MATRIX_SHAPE; ++i)

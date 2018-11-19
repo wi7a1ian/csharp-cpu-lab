@@ -11,6 +11,7 @@ namespace CpuBasics
     [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.LlcMisses)]
     public class CacheMiss
     {
+        // 1024x1024 x 4 bytes x 2 matrices = 8MB - should not fit in L3 cache 
         [Params(1024, 2048)]
         public int RowCount { get; set; }
 
