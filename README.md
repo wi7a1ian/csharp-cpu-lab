@@ -179,7 +179,9 @@ Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 
  MinMaxParallel |   416.3257 us |  2.1792 us |  8.4402 us |   416.8833 us |
 ```
 
-- ILP option doesn't help because compiler has to do boundary checks for us.
+- ILP option doesn't help because of 
+  - *loop stream detector*, an Intel dedicated optimization for loops that are particularly small. The moment we "optimizaed" the code, the number of uOps within the loop got bigger, leading to optimization being turned off,
+  - additional boundary checks being added by the compiler the moment we started accessing i+1 elements within the arrays.
 - Parallel is not fastest because of data sharing (cache invalidation).
 - Considering *single instruction, multiple data (SIMD)* does bring best performance boost when working with arrays. This can be achieved via `System.Numerics.Vectorization.Vector<T>` class in C#.
 
