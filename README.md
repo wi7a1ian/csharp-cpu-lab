@@ -195,3 +195,28 @@ Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 
 Making programs that can use predictable memory patterns is important. It is even more important with a threaded program, so that the memory requests do not jump all over; otherwise the processing unit will be waiting for memory requests to be fulfilled.
 
 Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When working with collections try to look for *hotpoints* that use several class/struct fields for calculations and then try to keep that data close by either using arrays-of-structs approach or struct-of-arrays instead. Either of those will be more beneficial from vectorization (SIMD instructions) and avoid cahce miss thanks to sequential data access. 
+
+A variable is accessed most efficiently if it is stored at a memory address which is divisible by the size of the variable. 
+For example, a double takes 8 bytes of storage space. It should therefore preferably be stored at an address divisible by 8. 
+The size should always be a power of 2. Objects bigger than 16 bytes should be stored at an address divisible by 16. 
+You can generally assume that the compiler takes care of this alignment automatically.
+
+You may choose to align large objects and arrays by the cache line size, which is typically 64 bytes. 
+This makes sure that the beginning of the object or array coincides with the beginning of a cache line. 
+Some compilers will align large static arrays automatically.
+
+It is often more efficient to allocate one big block of memory for all the objects (memory pooling) than to allocate a small block for each object. (List vs Vector in C++)
+
+When working with arrays & structs:
+- Look at the operations in the loop and decide if it is more beneficial to use AoS or SoA to guarantee sequentialy memory access.
+- In C# references are located first (by the JIT compiler). It is caused by automatic layout that places refs right after struct header and method map.
+- Apply `[StructLayout(LayoutKind.Sequential)]` to fix this, just be carefull for structs used internally because they can have `LayoutKind.Auto` like DateTime does.
+Consider ECS like
+- Entitas - https://github.com/sschmid/Entitas-CSharp
+- Unity ECS
+
+Remember:
+- TODO
+
+### ECS
+TODO
