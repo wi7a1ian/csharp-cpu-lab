@@ -133,12 +133,27 @@ void NodesTranslateWorldEachRoot(Node* nodes, int count, const Vector3* t);
 void NodesTranslateWorldEachWithParent(Node* nodes, int count, const Vector3* t) 
 ```
 
-### Cache invalidation - MESI protocol
+### Cache invalidation (cache coherence)
 **There are only two hard things in computer science: cache invalidation and naming things.**
 
-When working with threads where large object is schared among them i.e: array), when one thread modifies block of cached data, all other threads that work with the same copy have to re-read the data from the memory, aka invalidate. This is speed up woth MESI protocol that requires cache to cache transfer on a miss if the block resides in another cache.
+When working with threads where large object is schared among them i.e: array), when one thread modifies block of cached data, all other threads that work with the same copy have to re-read the data from the memory, aka invalidate. This is speed up with MESI protocol that requires cache to cache transfer on a miss if the block resides in another cache.
 
 When such unintentional cache sharing happens, parallel method should use private memory and then update shared memory when done, or let them modify/access only memory regions that are CL1 size (=~ 64kb) bytes away from each other.
+
+#### MESI protocol
+- Stands for line states: Modified, Exclusive, Shared, Invalid
+- Guarantees cache coherence (same data, but in different caches, will match for a single memory location)
+- Complex inter-CPU messaging guarantees correct state transitions
+
+#### Invalidation scenario
+1. Data frm the same memory location is in two separate L1 caches from two separate cores.
+1. Both are marked as shared.
+1. One core wants to modify the value so it marks it as *exclusive*, which leads to losing the value by the other core (aka *invalidation*).
+1. Value gets modified and goes to the main memory.
+1. The other core has to fetch the value from the memory location once again.
+
+This happens on level of cache lines = 64 bytes.
+
 
 #### Benchmark
 ```
@@ -154,9 +169,6 @@ When such unintentional cache sharing happens, parallel method should use privat
  IntegrateParallelSharing |           4 | 32.5735 ms | 0.0972 ms | 0.3638 ms | 32.5975 ms |
  IntegrateParallelPrivate |           4 | 24.0229 ms | 0.0677 ms | 0.2531 ms | 23.9731 ms |
 ```
-
-#### Coalescing memory access patterns (TODO)
-Make sure that threads that run simultaneously do not try to access the same memory locations, but at he same time try to access memory that is nearby. Going too far may hit critical stride.
 
 #### Remember
 - Design for parallelization
