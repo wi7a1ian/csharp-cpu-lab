@@ -100,8 +100,6 @@ When iterating over arrays, consider CPU cache sizes (L1=64kb, L2=2MB, L3=8MB) a
 Remember about critical stride. I.E: when acessing memory on Intel Core i7-8550U try not to jump by more than 128KiB / 8-ways = 16KiB to maximize L1 cache.
 Usually smallest cache line is 64 bytes, consider structs no larger that this value.
 
-Use BenchmarkDotNet or Hardware Counters like L1c misses/op for diagnostics.
-
 #### Remember
 - Fit the L1 cache line (64 bytes) when working with structs
 - Keep the data used for one computation close (*array-of-structs*) so that it can be accessed sequentially and loaded into one cache line.
@@ -229,3 +227,9 @@ Remember:
 
 ### ECS
 TODO
+
+### Howto troubleshoot
+- [Intel's Top-Down Characterization](https://software.intel.com/en-us/vtune-amplifier-help-tuning-applications-using-a-top-down-microarchitecture-analysis-method) to determine if frontend of backend is the bottleneck
+- [BenchmarkDotNet](https://benchmarkdotnet.org/) for C#
+- [Google Benchmark](https://github.com/google/benchmark) for C++
+- Hardware Counters - i.e for diagnosing amout of L1 cache misses per operation
