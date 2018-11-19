@@ -15,14 +15,6 @@ namespace CpuBasics
         private readonly float[] a = new float[MATRIX_SHAPE * MATRIX_SHAPE];
         private readonly float[] b = new float[MATRIX_SHAPE * MATRIX_SHAPE];
         private readonly float[] c = new float[MATRIX_SHAPE * MATRIX_SHAPE];
-           
-        // ...as array of structs
-        private readonly Point3[] pts = new Point3[4096];
-
-        // ...reorganized as structure of arrays
-        private readonly float[] xs = new float[4096];
-        private readonly float[] ys = new float[4096];
-        private readonly float[] zs = new float[4096];
 
         [GlobalSetup]
         public void Setup()
@@ -32,20 +24,6 @@ namespace CpuBasics
             for (int i = 0; i < a.Length; ++i)
             {
                 a[i] = b[i] = c[i] = (float)rand.NextDouble();
-            }
-
-            // array 
-            for (int i = 0; i < pts.Length; ++i)
-            {
-                xs[i] = (float)rand.NextDouble();
-                ys[i] = (float)rand.NextDouble();
-                zs[i] = (float)rand.NextDouble();
-                pts[i] = new Point3
-                {
-                    X = xs[i],
-                    Y = ys[i],
-                    Z = zs[i]
-                };
             }
         }
 
@@ -140,52 +118,5 @@ namespace CpuBasics
                 }
             }
         }
-
-        [Benchmark]
-        public void VectorNorm()
-        {
-            for (int i = 0; i < pts.Length; ++i)
-            {
-                Point3 pt = pts[i];
-
-                float norm = (float)Math.Sqrt(pt.X * pt.X + pt.Y * pt.Y + pt.Z * pt.Z);
-
-                pt.X /= norm;
-                pt.Y /= norm;
-                pt.Z /= norm;
-
-                pts[i] = pt;
-            }
-        }
-
-        [Benchmark]
-        public void VectorNormSimd()
-        {
-            // Note: Data reorganized as structure of arrays
-            int vecSize = Vector<float>.Count;
-            for( int i = 0; i < xs.Length; i += vecSize)
-            {
-                Vector<float> x = new Vector<float>(xs, i);
-                Vector<float> y = new Vector<float>(ys, i);
-                Vector<float> z = new Vector<float>(zs, i);
-
-                Vector<float> norm = Vector.SquareRoot(x * x + y * y + z * z);
-
-                x /= norm;
-                y /= norm;
-                z /= norm;
-
-                x.CopyTo(xs, i);
-                y.CopyTo(ys, i);
-                z.CopyTo(zs, i);
-            }
-        }
-    }
-
-    struct Point3
-    {
-        public float X;
-        public float Y;
-        public float Z;
     }
 }
