@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Engines;
 
 namespace CpuBasics
 {
@@ -13,6 +14,7 @@ namespace CpuBasics
         public float Z;
     }
 
+    [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
     public class AoSvsSoA
     {
         // Array of structs

@@ -8,7 +8,7 @@ using BenchmarkDotNet.Engines;
 namespace CpuBasics
 {
     [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
-    //[HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.LlcMisses)]
+    [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.LlcMisses)]
     public class CacheMiss
     {
         [Params(1024, 2048)]

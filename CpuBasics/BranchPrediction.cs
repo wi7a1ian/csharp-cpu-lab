@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Engines;
 
 namespace CpuBasics
 {
+    [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
     [HardwareCounters(HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
     public class BranchPrediction
     {
