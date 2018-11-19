@@ -188,7 +188,7 @@ Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 
 #### Remember
 - Avoid nonsequential access
 - Consider SIMD operations (Vector<T>)
-
+- Speed things up for one core before you move to additional cores and parallelize
 
 
 ### AoS vs SoA
