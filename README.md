@@ -1,6 +1,8 @@
 # csharp-cpu-lab (IN PROGRESS)
 ![](./blob/master/Img/CPUCache.PNG)
 
+![](./blob/master/Img/CPU-front-n-backend.png)
+
 ## Branch prediction
 #### Problem
 [SO: Why is it faster to process a sorted array than an unsorted array?](https://stackoverflow.com/questions/11227809/why-is-it-faster-to-process-a-sorted-array-than-an-unsorted-array?rq=1)
