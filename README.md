@@ -1,5 +1,9 @@
 # csharp-cpu-lab (IN PROGRESS)
-![](./blob/master/Img/CPUCache.PNG)
+
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPUCache.PNG)
+
+### Pipeline of a modern high-performance CPU
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-front-n-backend.png)
 
 ## Branch prediction
 #### Problem
@@ -85,7 +89,7 @@ This applies to reading as well as writing data. Multidimensional arrays should 
 This reflects the order in which the elements are stored in memory. 
 
 #### Hyperthreading
-Usually L1 cache lines are private, but enabling hyperthreads will make them share L1 cache which in turns cause resource contingency (cache invalidation). Projects that strongly base on proper L1 cache utilization should turn this feature off.
+Usually L1 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L1 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
 
 #### Guidelines
 Try to answer two questions:
@@ -175,14 +179,16 @@ Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 
  MinMaxParallel |   416.3257 us |  2.1792 us |  8.4402 us |   416.8833 us |
 ```
 
-- ILP option doesn't help because compiler has to do boundary checks for us.
+- ILP option doesn't help because of 
+  - *loop stream detector*, an Intel dedicated optimization for loops that are particularly small. The moment we "optimizaed" the code, the number of uOps within the loop got bigger, leading to optimization being turned off,
+  - additional boundary checks being added by the compiler the moment we started accessing i+1 elements within the arrays.
 - Parallel is not fastest because of data sharing (cache invalidation).
 - Considering *single instruction, multiple data (SIMD)* does bring best performance boost when working with arrays. This can be achieved via `System.Numerics.Vectorization.Vector<T>` class in C#.
 
 #### Remember
 - Avoid nonsequential access
 - Consider SIMD operations (Vector<T>)
-
+- Speed things up for one core before you move to additional cores and parallelize
 
 
 ### AoS vs SoA
