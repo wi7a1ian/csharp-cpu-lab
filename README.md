@@ -196,6 +196,15 @@ Making programs that can use predictable memory patterns is important. It is eve
 
 Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When working with collections try to look for *hotpoints* that use several class/struct fields for calculations and then try to keep that data close by either using arrays-of-structs approach or struct-of-arrays instead. Either of those will be more beneficial from vectorization (SIMD instructions) and avoid cahce miss thanks to sequential data access. 
 
+#### Benchmark 
+```
+          Method |     Mean |    Error |    StdDev |   Median |
+---------------- |---------:|---------:|----------:|---------:|
+ VectorNormNaive | 55.87 us | 14.15 us |  95.62 us | 43.03 us |
+  VectorNormSimd | 39.99 us | 42.36 us | 286.18 us | 11.05 us |
+```
+
+#### Guidelines
 A variable is accessed most efficiently if it is stored at a memory address which is divisible by the size of the variable. 
 For example, a double takes 8 bytes of storage space. It should therefore preferably be stored at an address divisible by 8. 
 The size should always be a power of 2. Objects bigger than 16 bytes should be stored at an address divisible by 16. 
