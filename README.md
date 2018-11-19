@@ -136,9 +136,13 @@ void NodesTranslateWorldEachWithParent(Node* nodes, int count, const Vector3* t)
 ### Cache invalidation (cache coherence)
 **There are only two hard things in computer science: cache invalidation and naming things.**
 
-When working with threads where large object is schared among them i.e: array), when one thread modifies block of cached data, all other threads that work with the same copy have to re-read the data from the memory, aka invalidate. This is speed up with MESI protocol that requires cache to cache transfer on a miss if the block resides in another cache.
+When working with threads where large object is schared among them (i.e: array), when one thread modifies block of cached data, all other threads that work with the same copy have to re-read the data from the memory, aka invalidate. This is speed up with MESI protocol that requires cache to cache transfer on a miss if the block resides in another cache.
 
-When such unintentional cache sharing happens, parallel method should use private memory and then update shared memory when done, or let them modify/access only memory regions that are CL1 size (=~ 64kb) bytes away from each other.
+This happens on level of cache lines = 64 bytes.
+
+It is not about two cores accessing same memory location, it is two cores accessing adjecent memory locations which happen to be on the same cache line.
+
+When such unintentional cache sharing happens, parallel method should use private memory and then update shared memory when done, or let them modify/access only memory regions that are L1 cache line size bytes away from each other.
 
 #### MESI protocol
 - Stands for line states: Modified, Exclusive, Shared, Invalid
@@ -151,9 +155,6 @@ When such unintentional cache sharing happens, parallel method should use privat
 1. One core wants to modify the value so it marks it as *exclusive*, which leads to losing the value by the other core (aka *invalidation*).
 1. Value gets modified and goes to the main memory.
 1. The other core has to fetch the value from the memory location once again.
-
-This happens on level of cache lines = 64 bytes.
-
 
 #### Benchmark
 ```
@@ -240,8 +241,13 @@ Remember:
 ### ECS
 TODO
 
-### Howto troubleshoot
+### How-to troubleshoot
+- Modern processors have a PMU with PMCs:
+  - LLC misses, branch mispredictions, instructions retired, μops decoded, etc.
+  - Fire interrupt after a PMC was incremented N times
 - [Intel's Top-Down Characterization](https://software.intel.com/en-us/vtune-amplifier-help-tuning-applications-using-a-top-down-microarchitecture-analysis-method) to determine if frontend of backend is the bottleneck
-- [BenchmarkDotNet](https://benchmarkdotnet.org/) for C#
+- [BenchmarkDotNet](https://benchmarkdotnet.org/) for C# - has a mode where it collects PMU events for a benchmark run
 - [Google Benchmark](https://github.com/google/benchmark) for C++
 - Hardware Counters - i.e for diagnosing amout of L1 cache misses per operation
+- Intel Parallel Studio - tools for correlating PMU events with code and issuing guidance (Intel VTune Amplifier, Intel Threading Advisor, Intel Vector Advisor)
+- ETW (Event tracing for Windows) can also track PMU events
