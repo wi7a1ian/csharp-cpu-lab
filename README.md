@@ -152,7 +152,7 @@ This happens on level of cache lines = 64 bytes.
 
 It is not about two cores accessing same memory location, it is two cores accessing adjecent memory locations which happen to be on the same cache line.
 
-When such unintentional cache sharing happens, parallel method should use private memory and then update shared memory when done, or let them modify/access only memory regions that are L1 cache line size bytes away from each other.
+When such unintentional cache sharing happens, parallel method should use private memory and then update shared memory when done, or let them modify/access only memory regions that are L1 cache line size (64) bytes away from each other.
 
 #### MESI protocol
 - Stands for line states: Modified, Exclusive, Shared, Invalid
