@@ -1,5 +1,5 @@
 # csharp-cpu-lab (IN PROGRESS)
-
+### Intel i7 Nehalem
 ![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPUCache.PNG)
 
 ### Pipeline of a modern high-performance CPU
