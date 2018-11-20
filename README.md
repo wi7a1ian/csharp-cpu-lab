@@ -6,7 +6,7 @@
 ![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-front-n-backend.png)
 
 ## Branch prediction
-#### Problem
+#### Problem #1
 [SO: Why is it faster to process a sorted array than an unsorted array?](https://stackoverflow.com/questions/11227809/why-is-it-faster-to-process-a-sorted-array-than-an-unsorted-array?rq=1)
 
 ```
@@ -25,7 +25,7 @@ return sum;
  UnsortedArray | 149.3315 us | 0.6229 us | 149.4772 us |
 ```
 
-#### Which comes first?
+#### Problem #2 - which path will be executed faster?
 ```
 if(...)
 	bar1();
