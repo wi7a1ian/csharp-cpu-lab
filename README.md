@@ -168,17 +168,12 @@ When such unintentional cache sharing happens, parallel method should use privat
 
 #### Benchmark
 ```
-                   Method | Parallelism |       Mean |    StdErr |    StdDev |     Median |
-------------------------- |------------ |----------- |---------- |---------- |----------- |
-      IntegrateSequential |           1 | 46.4865 ms | 0.0313 ms | 0.1130 ms | 46.5153 ms |
- IntegrateParallelSharing |           1 | 46.7902 ms | 0.1595 ms | 0.5752 ms | 46.7739 ms |
- IntegrateParallelPrivate |           1 | 46.3889 ms | 0.0577 ms | 0.2233 ms | 46.3770 ms |
-      IntegrateSequential |           2 | 47.0677 ms | 0.2844 ms | 1.1014 ms | 46.7873 ms |
- IntegrateParallelSharing |           2 | 36.1801 ms | 0.4011 ms | 1.5533 ms | 35.7176 ms |
- IntegrateParallelPrivate |           2 | 26.1333 ms | 0.2574 ms | 1.5229 ms | 25.8960 ms |
-      IntegrateSequential |           4 | 46.4568 ms | 0.0470 ms | 0.1820 ms | 46.4738 ms |
- IntegrateParallelSharing |           4 | 32.5735 ms | 0.0972 ms | 0.3638 ms | 32.5975 ms |
- IntegrateParallelPrivate |           4 | 24.0229 ms | 0.0677 ms | 0.2531 ms | 23.9731 ms |
+                   Method | Parallelism |     Mean |    Error |    StdDev |   Median | Allocated |
+------------------------- |------------ |---------:|---------:|----------:|---------:|----------:|
+      IntegrateSequential |           4 | 445.4 ms | 6.122 ms | 23.097 ms | 438.3 ms |      64 B |
+ IntegrateParallelSharing |           4 | 369.6 ms | 3.627 ms | 15.672 ms | 396.8 ms |    1752 B |
+  IntegrateParallelSkeved |           4 | 234.0 ms | 1.328 ms |  3.403 ms | 232.7 ms |    1976 B |
+ IntegrateParallelPrivate |           4 | 233.0 ms | 1.086 ms |  2.744 ms | 232.6 ms |    1752 B |
 ```
 
 #### Remember
@@ -216,7 +211,7 @@ Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 
 ### AoS vs SoA
 Making programs that can use predictable memory patterns is important. It is even more important with a threaded program, so that the memory requests do not jump all over; otherwise the processing unit will be waiting for memory requests to be fulfilled.
 
-Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When working with collections try to look for *hotpoints* that use several class/struct fields for calculations and then try to keep that data close by either using arrays-of-structs approach or struct-of-arrays instead. Either of those will be more beneficial from vectorization (SIMD instructions) and avoid cahce miss thanks to sequential data access. 
+Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When working with collections try to look for *hotpoints* that use several class/struct fields for calculations and then try to keep that data close. If the data is repeatively modified the same way for multiple items, then consider switching to struct-of-arrays approach instead. The latter one will be more beneficial from vectorization (SIMD instructions) and avoid cache misses thanks to sequential data access. 
 
 #### Benchmark #1
 ```
@@ -228,11 +223,12 @@ Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When w
 
 #### Benchmark #2
 ```
-            Method |     Mean |    Error |    StdDev |
------------------- |---------:|---------:|----------:|
-     VectorNormAoS | 83.78 us | 29.36 us |  86.57 us |
-     VectorNormSoA | 52.21 us | 31.51 us |  92.91 us |
- VectorNormSoASimd | 39.07 us | 88.68 us | 261.49 us |
+                 Method | ArraySize |       Mean |    Error |   StdDev |     Median |
+----------------------- |---------- |-----------:|---------:|---------:|-----------:|
+          VectorNormAoS |     65536 | 1,423.7 us | 50.12 us | 147.8 us | 1,383.0 us |
+ VectorNormAoSCacheLine |     65536 |   756.0 us | 37.37 us | 110.2 us |   730.5 us |
+          VectorNormSoA |     65536 |   686.9 us | 40.17 us | 118.4 us |   673.8 us |
+         VectorNormSimd |     65536 |   170.5 us | 60.24 us | 177.6 us |   152.4 us |
 ```
 
 #### Guidelines
@@ -248,7 +244,7 @@ Some compilers will align large static arrays automatically.
 It is often more efficient to allocate one big block of memory for all the objects (memory pooling) than to allocate a small block for each object. (List vs Vector in C++)
 
 When working with arrays & structs:
-- Look at the operations in the loop and decide if it is more beneficial to use AoS or SoA to guarantee sequentialy memory access.
+- Look at the operations in the loop and decide if it is more beneficial to move from AoS to SoA to guarantee sequential memory access.
 - In C# references are located first (by the JIT compiler). It is caused by automatic layout that places refs right after struct header and method map.
 - Apply `[StructLayout(LayoutKind.Sequential)]` to fix this, just be carefull for structs used internally because they can have `LayoutKind.Auto` like DateTime does.
 Consider ECS like
