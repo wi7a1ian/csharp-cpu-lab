@@ -254,7 +254,9 @@ TODO
 - Fit the highest cache level (~8MiB)
 - "Just" keep most “hot data” in L1/L2/L3…
 - Design for parallelization
-- Do not let threads modify cache lines from the same shared memory locations
+  - Do not let threads modify cache lines from the same shared memory locations
+  - Lock-free solutions
+- Avoid non-sequential access
 
 ### How-to troubleshoot
 - Modern processors have a PMU with PMCs:
