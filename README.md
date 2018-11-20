@@ -211,7 +211,7 @@ Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 
 ### AoS vs SoA
 Making programs that can use predictable memory patterns is important. It is even more important with a threaded program, so that the memory requests do not jump all over; otherwise the processing unit will be waiting for memory requests to be fulfilled.
 
-Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When working with collections try to look for *hotpoints* that use several class/struct fields for calculations and then try to keep that data close by either using arrays-of-structs approach or struct-of-arrays instead. Either of those will be more beneficial from vectorization (SIMD instructions) and avoid cahce miss thanks to sequential data access. 
+Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When working with collections try to look for *hotpoints* that use several class/struct fields for calculations and then try to keep that data close. If the data is repeatively modified the same way for multiple items, then consider switching to struct-of-arrays approach instead. The latter one will be more beneficial from vectorization (SIMD instructions) and avoid cache misses thanks to sequential data access. 
 
 #### Benchmark #1
 ```
