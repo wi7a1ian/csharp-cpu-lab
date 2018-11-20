@@ -244,7 +244,7 @@ Some compilers will align large static arrays automatically.
 It is often more efficient to allocate one big block of memory for all the objects (memory pooling) than to allocate a small block for each object. (List vs Vector in C++)
 
 When working with arrays & structs:
-- Look at the operations in the loop and decide if it is more beneficial to use AoS or SoA to guarantee sequentialy memory access.
+- Look at the operations in the loop and decide if it is more beneficial to move from AoS to SoA to guarantee sequential memory access.
 - In C# references are located first (by the JIT compiler). It is caused by automatic layout that places refs right after struct header and method map.
 - Apply `[StructLayout(LayoutKind.Sequential)]` to fix this, just be carefull for structs used internally because they can have `LayoutKind.Auto` like DateTime does.
 Consider ECS like
