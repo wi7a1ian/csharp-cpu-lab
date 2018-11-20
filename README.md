@@ -257,6 +257,7 @@ TODO
   - Do not let threads modify cache lines from the same shared memory locations
   - Lock-free solutions
 - Avoid non-sequential access
+- Consider moving from AOS to SOA
 
 ### How-to troubleshoot
 - Modern processors have a PMU with PMCs:
