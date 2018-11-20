@@ -7,32 +7,33 @@ using BenchmarkDotNet.Engines;
 
 namespace CpuBasics
 {
+    [MemoryDiagnoser]
     [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
     [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.LlcMisses)]
-    public class CacheMiss
+    public class CacheMissTiling
     {
+        [Params(4, 8, 16, 32)]
+        public int TiledBlockSize { get; set; }
+
         // 1024x1024 x 4 bytes x 2 matrices = 8MB - should not fit in L3 cache 
         [Params(1024, 2048)]
         public int RowCount { get; set; }
 
         public int ColCount => RowCount;
 
-        private float[] _image;
-        private float[] _rotated;
-
-        [Params(4, 8, 16, 32)]
-        public int TiledBlockSize { get; set; }
+        private float[] sourceImage;
+        private float[] rotatedImage;
 
         [GlobalSetup]
         public void Setup()
         {
-            _image = new float[RowCount * ColCount];
-            _rotated = new float[RowCount * ColCount];
+            sourceImage = new float[RowCount * ColCount];
+            rotatedImage = new float[RowCount * ColCount];
 
             var random = new Random(42);
-            for (int i = 0; i < _image.Length; ++i)
+            for (int i = 0; i < sourceImage.Length; ++i)
             {
-                _image[i] = random.Next();
+                sourceImage[i] = random.Next();
             }
         }
 
@@ -45,7 +46,7 @@ namespace CpuBasics
                 {
                     int from = y * ColCount + x;
                     int to = x * RowCount + y;
-                    _rotated[to] = _image[from];
+                    rotatedImage[to] = sourceImage[from];
                 }
             }
         }
@@ -66,7 +67,7 @@ namespace CpuBasics
                         {
                             int from = (y + by) * ColCount + (x + bx);
                             int to = (x + bx) * RowCount + (y + by);
-                            _rotated[to] = _image[from];
+                            rotatedImage[to] = sourceImage[from];
                         }
                     }
                 }

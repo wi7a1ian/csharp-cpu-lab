@@ -12,21 +12,25 @@ namespace CpuBasics
     [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
     public class SIMD
     {
-        private int[] _data = new int[512 * 1024];
+        [Params(512 * 1024)]
+        public int NumberCount { get; set; }
+
+        private int[] numbers;
 
         [GlobalSetup]
         public void Setup()
         {
             var random = new Random(42);
-            for (int i = 0; i < _data.Length; ++i)
-                _data[i] = random.Next();
+            numbers = new int[NumberCount];
+            for (int i = 0; i < numbers.Length; ++i)
+                numbers[i] = random.Next();
         }
 
         [Benchmark]
         public Tuple<int, int> MinMaxNaive()
         {
             int max = int.MinValue, min = int.MaxValue;
-            foreach (var i in _data)
+            foreach (var i in numbers)
             {
                 min = Math.Min(min, i);
                 max = Math.Max(max, i);
@@ -38,9 +42,9 @@ namespace CpuBasics
         public Tuple<int, int> MinMaxILP()
         {
             int max1 = int.MinValue, max2 = int.MinValue, min1 = int.MaxValue, min2 = int.MaxValue;
-            for (int i = 0; i < _data.Length; i += 2)
+            for (int i = 0; i < numbers.Length; i += 2)
             {
-                int d1 = _data[i], d2 = _data[i + 1];
+                int d1 = numbers[i], d2 = numbers[i + 1];
                 min1 = Math.Min(min1, d1);
                 min2 = Math.Min(min2, d2);
                 max1 = Math.Max(max1, d1);
@@ -54,15 +58,15 @@ namespace CpuBasics
         {
             int threads = Environment.ProcessorCount;
             int[] mins = new int[threads], maxs = new int[threads];
-            int chunkSize = _data.Length / threads;
+            int chunkSize = numbers.Length / threads;
             Parallel.For(0, threads, i =>
             {
                 int min = int.MaxValue, max = int.MinValue;
                 int from = chunkSize * i, to = chunkSize * (i + 1);
                 for (int j = from; j < to; ++j)
                 {
-                    min = Math.Min(min, _data[j]);
-                    max = Math.Max(max, _data[j]);
+                    min = Math.Min(min, numbers[j]);
+                    max = Math.Max(max, numbers[j]);
                 }
                 mins[i] = min;
                 maxs[i] = max;
@@ -75,9 +79,9 @@ namespace CpuBasics
         {
             Vector<int> vmin = new Vector<int>(int.MaxValue), vmax = new Vector<int>(int.MinValue);
             int vecSize = Vector<int>.Count;
-            for (int i = 0; i < _data.Length; i += vecSize)
+            for (int i = 0; i < numbers.Length; i += vecSize)
             {
-                Vector<int> vdata = new Vector<int>(_data, i);
+                Vector<int> vdata = new Vector<int>(numbers, i);
                 Vector<int> minMask = Vector.LessThan(vdata, vmin);
                 Vector<int> maxMask = Vector.GreaterThan(vdata, vmax);
                 vmin = Vector.ConditionalSelect(minMask, vdata, vmin);

@@ -9,60 +9,64 @@ namespace CpuBasics
 {
     public class SIMD2
     {
-        private const int MATRIX_SHAPE = 512;
+        [Params(512)]
+        public int MatrixDimension { get; set; }
 
-        // Vectors...
-        private readonly float[] a = new float[MATRIX_SHAPE * MATRIX_SHAPE];
-        private readonly float[] b = new float[MATRIX_SHAPE * MATRIX_SHAPE];
-        private readonly float[] c = new float[MATRIX_SHAPE * MATRIX_SHAPE];
+        private float[] matrixA;
+        private float[] matrixB;
+        private float[] matrixC;
 
         [GlobalSetup]
         public void Setup()
         {
-            var rand = new Random(42);
+            matrixA = new float[MatrixDimension * MatrixDimension];
+            matrixB = new float[MatrixDimension * MatrixDimension];
+            matrixC = new float[MatrixDimension * MatrixDimension];
 
-            for (int i = 0; i < a.Length; ++i)
+        var rand = new Random(42);
+
+            for (int i = 0; i < matrixA.Length; ++i)
             {
-                a[i] = b[i] = c[i] = (float)rand.NextDouble();
+                matrixA[i] = matrixB[i] = matrixC[i] = (float)rand.NextDouble();
             }
         }
 
         [Benchmark]
         public void AddVectors()
         {
-            int length = a.Length;
+            int length = matrixA.Length;
             for (int i = 0; i < length; ++i)
-                c[i] = a[i] + b[i];
+                matrixC[i] = matrixA[i] + matrixB[i];
         }
 
         [Benchmark]
         public void AddVectorsSimd()
         {
             int vectorLength = Vector<float>.Count;
-            int remainder = a.Length % vectorLength, length = a.Length - remainder;
+            int remainder = matrixA.Length % vectorLength, length = matrixA.Length - remainder;
             for (int i = 0; i < length; i += vectorLength)
             {
-                Vector<float> va = new Vector<float>(a, i);
-                Vector<float> vb = new Vector<float>(b, i);
+                Vector<float> va = new Vector<float>(matrixA, i);
+                Vector<float> vb = new Vector<float>(matrixB, i);
                 Vector<float> vc = va + vb;
-                vc.CopyTo(c, i);
+                vc.CopyTo(matrixC, i);
             }
             for (int i = 0; i < remainder; ++i)
             {
-                c[length + i] = a[length + i] + b[length + i];
+                matrixC[length + i] = matrixA[length + i] + matrixB[length + i];
             }
         }
 
         [Benchmark]
         public void MatrixMultNaive()
         {
-            for (int i = 0; i < MATRIX_SHAPE; ++i)
+            for (int i = 0; i < MatrixDimension; ++i)
             {
-                for (int j = 0; j < MATRIX_SHAPE; ++j)
+                for (int j = 0; j < MatrixDimension; ++j)
                 {
-                    for (int k = 0; k < MATRIX_SHAPE; ++k)
+                    for (int k = 0; k < MatrixDimension; ++k)
                     {
-                        c[i * MATRIX_SHAPE + j] += a[i * MATRIX_SHAPE + k] * b[k * MATRIX_SHAPE + j];
+                        matrixC[i * MatrixDimension + j] += matrixA[i * MatrixDimension + k] * matrixB[k * MatrixDimension + j];
                     }
                 }
             }
@@ -71,13 +75,13 @@ namespace CpuBasics
         [Benchmark]
         public void MatrixMultReorg()
         {
-            for (int i = 0; i < MATRIX_SHAPE; ++i)
+            for (int i = 0; i < MatrixDimension; ++i)
             {
-                for (int k = 0; k < MATRIX_SHAPE; ++k)
+                for (int k = 0; k < MatrixDimension; ++k)
                 {
-                    for (int j = 0; j < MATRIX_SHAPE; ++j)
+                    for (int j = 0; j < MatrixDimension; ++j)
                     {
-                        c[i * MATRIX_SHAPE + j] += a[i * MATRIX_SHAPE + k] * b[k * MATRIX_SHAPE + j];
+                        matrixC[i * MatrixDimension + j] += matrixA[i * MatrixDimension + k] * matrixB[k * MatrixDimension + j];
                     }
                 }
             }
@@ -87,17 +91,17 @@ namespace CpuBasics
         public void MatrixMultSimd()
         {
             int vecSize = Vector<float>.Count;
-            for (int i = 0; i < MATRIX_SHAPE; ++i)
+            for (int i = 0; i < MatrixDimension; ++i)
             {
-                for (int k = 0; k < MATRIX_SHAPE; ++k)
+                for (int k = 0; k < MatrixDimension; ++k)
                 {
-                    Vector<float> va = new Vector<float>(a[i * MATRIX_SHAPE + k]);
-                    for (int j = 0; j < MATRIX_SHAPE; j += vecSize)
+                    Vector<float> va = new Vector<float>(matrixA[i * MatrixDimension + k]);
+                    for (int j = 0; j < MatrixDimension; j += vecSize)
                     {
-                        Vector<float> vb = new Vector<float>(b, k * MATRIX_SHAPE + j);
-                        Vector<float> vc = new Vector<float>(c, i * MATRIX_SHAPE + j);
+                        Vector<float> vb = new Vector<float>(matrixB, k * MatrixDimension + j);
+                        Vector<float> vc = new Vector<float>(matrixC, i * MatrixDimension + j);
                         vc += va * vb;
-                        vc.CopyTo(c, i * MATRIX_SHAPE + j);
+                        vc.CopyTo(matrixC, i * MatrixDimension + j);
                     }
                 }
             }

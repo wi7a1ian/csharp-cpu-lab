@@ -11,19 +11,19 @@ namespace CpuBasics
     [HardwareCounters(HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
     public class BranchPrediction
     {
-        private int[] _sorted = new int[32768];
-        private int[] _unsorted = new int[32768];
+        private int[] sorted = new int[32768];
+        private int[] unsorted = new int[32768];
 
         [GlobalSetup]
         public void Setup()
         {
             var random = new Random(42);
-            for (int i = 0; i < _sorted.Length; ++i)
+            for (int i = 0; i < sorted.Length; ++i)
             {
-                _sorted[i] = random.Next(0, 256);
-                _unsorted[i] = random.Next(0, 256);
+                sorted[i] = random.Next(0, 256);
+                unsorted[i] = random.Next(0, 256);
             }
-            Array.Sort(_sorted);
+            Array.Sort(sorted);
         }
 
 
@@ -31,7 +31,7 @@ namespace CpuBasics
         public int SortedBranchless()
         {
             int sum = 0;
-            foreach (var i in _sorted)
+            foreach (var i in sorted)
                 sum += i;
             return sum;
         }
@@ -40,7 +40,7 @@ namespace CpuBasics
         public int UnsortedBranchless()
         {
             int sum = 0;
-            foreach (var i in _unsorted)
+            foreach (var i in unsorted)
                 sum += i;
             return sum;
         }
@@ -49,7 +49,7 @@ namespace CpuBasics
         public int SortedBranch()
         {
             int sum = 0;
-            foreach (var i in _sorted)
+            foreach (var i in sorted)
                 if (i >= 128)
                     sum += i;
             return sum;
@@ -59,7 +59,7 @@ namespace CpuBasics
         public int UnsortedBranch()
         {
             int sum = 0;
-            foreach (var i in _unsorted)
+            foreach (var i in unsorted)
                 if (i >= 128)
                     sum += i;
             return sum;

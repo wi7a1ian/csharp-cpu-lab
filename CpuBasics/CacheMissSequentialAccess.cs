@@ -7,30 +7,32 @@ using BenchmarkDotNet.Engines;
 
 namespace CpuBasics
 {
+    [MemoryDiagnoser]
     [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
-    public class DataAccessReorder
+    [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.LlcMisses, HardwareCounter.LlcReference)]
+    public class CacheMissSequentialAccess
     {
         // 512x512 x 4 bytes x 3 matrices = 3MB - should fit in 8MB L3 cache
         // 1024x1024 x 4 bytes x 3 matrices = 12MB - should exceed L3 cache 
         [Params(512, 1024)]
         public int MatrixDimension { get; set; }
 
-        private float[] _matrixA;
-        private float[] _matrixB;
-        private float[] _matrixC;
+        private float[] matrixA;
+        private float[] matrixB;
+        private float[] matrixC;
 
         [GlobalSetup]
         public void Setup()
         {
-            _matrixA = new float[MatrixDimension * MatrixDimension];
-            _matrixB = new float[MatrixDimension * MatrixDimension];
-            _matrixC = new float[MatrixDimension * MatrixDimension];
+            matrixA = new float[MatrixDimension * MatrixDimension];
+            matrixB = new float[MatrixDimension * MatrixDimension];
+            matrixC = new float[MatrixDimension * MatrixDimension];
 
             var random = new Random(42);
-            for (int i = 0; i < _matrixA.Length; ++i)
+            for (int i = 0; i < matrixA.Length; ++i)
             {
-                _matrixA[i] = random.Next();
-                _matrixB[i] = random.Next();
+                matrixA[i] = random.Next();
+                matrixB[i] = random.Next();
             }
         }
 
@@ -43,7 +45,7 @@ namespace CpuBasics
                 {
                     for (int k = 0; k < MatrixDimension; ++k)
                     {
-                        _matrixC[y * MatrixDimension + x] += _matrixA[y * MatrixDimension + k] * _matrixB[k * MatrixDimension + x];
+                        matrixC[y * MatrixDimension + x] += matrixA[y * MatrixDimension + k] * matrixB[k * MatrixDimension + x];
                     }
                 }
             }
@@ -58,7 +60,7 @@ namespace CpuBasics
                 {
                     for (int x = 0; x < MatrixDimension; ++x)
                     {
-                        _matrixC[y * MatrixDimension + x] += _matrixA[y * MatrixDimension + k] * _matrixB[k * MatrixDimension + x];
+                        matrixC[y * MatrixDimension + x] += matrixA[y * MatrixDimension + k] * matrixB[k * MatrixDimension + x];
                     }
                 }
             }
