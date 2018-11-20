@@ -1,12 +1,12 @@
 # csharp-cpu-lab (IN PROGRESS)
-
+### Intel i7 Nehalem
 ![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPUCache.PNG)
 
 ### Pipeline of a modern high-performance CPU
 ![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-front-n-backend.png)
 
 ## Branch prediction
-#### Problem
+#### Problem #1
 [SO: Why is it faster to process a sorted array than an unsorted array?](https://stackoverflow.com/questions/11227809/why-is-it-faster-to-process-a-sorted-array-than-an-unsorted-array?rq=1)
 
 ```
@@ -25,7 +25,7 @@ return sum;
  UnsortedArray | 149.3315 us | 0.6229 us | 149.4772 us |
 ```
 
-#### Which comes first?
+#### Problem #2 - which path will be executed faster?
 ```
 if(...)
 	bar1();
@@ -38,8 +38,8 @@ else
 - `bar1()` is a fall-through, which means:
 	```
 	test %x, %y;
-	je .bar; 
-	call foo(); <-- this gets prefetched
+	je .bar2; 
+	call bar1(); <-- this gets prefetched
 	...
 	```
 - In case of branch misprediction a stall is taken if it should go throught bar2() (it can take 20 cycles to load instructions).
@@ -51,7 +51,17 @@ Each cache miss slows down the overall process because after a cache miss, the c
 a higher level cache, such as L1, L2, L3 and random access memory (RAM) for that data. 
 Further, a new entry is created and copied in cache before it can be accessed by the processor.
 
-#### Benchmark
+#### Benchmark #1 - sequential vs random data access
+```
+          Method | MatrixDimension |        Mean |      Error |    StdDev |      Median |
+---------------- |---------------- |------------:|-----------:|----------:|------------:|
+ MatrixMultNaive |             512 |    479.1 ms |  16.272 ms |  76.47 ms |    452.4 ms |
+ MatrixMultReorg |             512 |    258.3 ms |   9.272 ms |  34.98 ms |    248.8 ms |
+ MatrixMultNaive |            1024 | 11,301.5 ms | 135.276 ms | 545.57 ms | 11,118.6 ms |
+ MatrixMultReorg |            1024 |  2,002.1 ms |  13.517 ms |  36.08 ms |  2,000.0 ms |
+```
+
+#### Benchmark #2 - tiling
 ```
       Method |      Mean |    StdErr |    StdDev |    Median |
 ------------ |---------- |---------- |---------- |---------- |
@@ -89,7 +99,7 @@ This applies to reading as well as writing data. Multidimensional arrays should 
 This reflects the order in which the elements are stored in memory. 
 
 #### Hyperthreading
-Usually L1 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L1 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
+Usually L1 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L2 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
 
 #### Guidelines
 Try to answer two questions:
@@ -142,7 +152,7 @@ This happens on level of cache lines = 64 bytes.
 
 It is not about two cores accessing same memory location, it is two cores accessing adjecent memory locations which happen to be on the same cache line.
 
-When such unintentional cache sharing happens, parallel method should use private memory and then update shared memory when done, or let them modify/access only memory regions that are L1 cache line size bytes away from each other.
+When such unintentional cache sharing happens, parallel method should use private memory and then update shared memory when done, or let them modify/access only memory regions that are L1 cache line size (64) bytes away from each other.
 
 #### MESI protocol
 - Stands for line states: Modified, Exclusive, Shared, Invalid
@@ -173,7 +183,8 @@ When such unintentional cache sharing happens, parallel method should use privat
 
 #### Remember
 - Design for parallelization
-- Be careful about hyperthreading that share L1 cache
+- Do not let threads to work wit the same cache lines
+- Be careful about hyperthreading which share L2 cache
 
 ## SIMD
 Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 architecture.
@@ -235,11 +246,18 @@ Consider ECS like
 - Entitas - https://github.com/sschmid/Entitas-CSharp
 - Unity ECS
 
-Remember:
-- TODO
-
 ### ECS
 TODO
+
+### Remember:
+- Fit the cache line (~64b)
+- Fit the highest cache level (~8MiB)
+- "Just" keep most “hot data” in L1/L2/L3…
+- Design for parallelization
+  - Do not let threads modify cache lines from the same shared memory locations
+  - Lock-free solutions
+- Avoid non-sequential access
+- Consider moving from AOS to SOA
 
 ### How-to troubleshoot
 - Modern processors have a PMU with PMCs:
