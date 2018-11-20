@@ -4,9 +4,11 @@ using System.Text;
 using System.Linq;
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Engines;
 
 namespace CpuBasics
 {
+    [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
     public class SIMD2
     {
         [Params(512)]

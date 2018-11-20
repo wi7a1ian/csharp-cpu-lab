@@ -15,9 +15,9 @@ namespace CpuBasics
         [Params(4)]
         public int Parallelism { get; set; }
 
-        private const int stepCount = 10000000;
+        private const int stepCount = 100_000_000;
         private const double fromX = 0.0;
-        private const double toX = 1.0;
+        private const double toX = 10.0;
 
         private static double Function(double x)
         {

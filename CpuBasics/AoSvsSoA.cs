@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 
 namespace CpuBasics
 { 
-    struct Point3ThatDontFitCacheLine
+    public class Point3ThatDontFitCacheLine
     {
         public float X; // <------------- Used for calculations
         public int SomeField1;
@@ -23,32 +24,34 @@ namespace CpuBasics
         public double SomeField10;
         public double SomeField11;
         public double SomeField12;
+        DateTime UpdateTime;
         public float Z; // <------------- Used for calculations
 
         public float Normalize() => (float)Math.Sqrt(X * X + Y * Y + Z * Z); // <-- Adds "Method Table" to struct header
     }
 
-    struct Point3ThatFitCacheLine
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Point3ThatFitCacheLine
     {
         public float X; // <------------- Used for calculations
         public double SomeField1;
-        public double SomeField2;
         public float Y; // <------------- Used for calculations
         public float Z; // <------------- Used for calculations
-        public float SomeField3;
+        public double SomeField2;
+        DateTime UpdateTime;
     }
 
-    [SimpleJob(RunStrategy.ColdStart, launchCount: 1)]
+    [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
     public class AoSvsSoA
     {
         [Params(1024*64)]
         public int ArraySize { get; set; }
 
         // Array of structs that don't fit the cache line
-        private Point3ThatDontFitCacheLine[] arrayOfPts;
+        private List<Point3ThatDontFitCacheLine> arrayOfPts;
 
         // Array of structs that fit the cache line
-        private Point3ThatFitCacheLine[] arrayOfPtsCL;
+        private List<Point3ThatFitCacheLine> arrayOfPtsCL;
 
         // Reorganized as structure of arrays
         private float[] arrayOfX;
@@ -60,39 +63,39 @@ namespace CpuBasics
         {
             var rand = new Random(42);
 
-            arrayOfPts = new Point3ThatDontFitCacheLine[ArraySize];
-            arrayOfPtsCL = new Point3ThatFitCacheLine[ArraySize];
+            arrayOfPts = new List<Point3ThatDontFitCacheLine>(ArraySize);
+            arrayOfPtsCL = new List<Point3ThatFitCacheLine>(ArraySize);
             arrayOfX = new float[ArraySize];
             arrayOfY = new float[ArraySize];
             arrayOfZ = new float[ArraySize];
 
-            for (int i = 0; i < arrayOfPts.Length; ++i)
+            for (int i = 0; i < arrayOfPts.Count; ++i)
             {
                 arrayOfX[i] = (float)rand.NextDouble();
                 arrayOfY[i] = (float)rand.NextDouble();
                 arrayOfZ[i] = (float)rand.NextDouble();
 
-                arrayOfPts[i] = new Point3ThatDontFitCacheLine
+                arrayOfPts.Add(new Point3ThatDontFitCacheLine
                 {
                     X = arrayOfX[i],
                     Y = arrayOfY[i],
                     Z = arrayOfZ[i]
-                };
-                arrayOfPtsCL[i] = new Point3ThatFitCacheLine
+                });
+                arrayOfPtsCL.Add(new Point3ThatFitCacheLine
                 {
                     X = arrayOfX[i],
                     Y = arrayOfY[i],
                     Z = arrayOfZ[i]
-                };
+                });
             }
         }
 
         [Benchmark]
         public void VectorNormAoS()
         {
-            for (int i = 0; i < arrayOfPts.Length; ++i)
+            for (int i = 0; i < arrayOfPts.Count; ++i)
             {
-                ref Point3ThatDontFitCacheLine pt = ref arrayOfPts[i];
+                Point3ThatDontFitCacheLine pt = arrayOfPts[i];
 
                 float norm = pt.Normalize();
 
@@ -105,11 +108,11 @@ namespace CpuBasics
         }
 
         [Benchmark]
-        public void VectorNormAoSCacheLine()
+        public void VectorNormAoSFitCL()
         {
-            for (int i = 0; i < arrayOfPts.Length; ++i)
+            for (int i = 0; i < arrayOfPts.Count; ++i)
             {
-                ref Point3ThatFitCacheLine pt = ref arrayOfPtsCL[i];
+                Point3ThatFitCacheLine pt = arrayOfPtsCL[i];
 
                 float norm = (float)Math.Sqrt(pt.X * pt.X + pt.Y * pt.Y + pt.Z * pt.Z);
 
