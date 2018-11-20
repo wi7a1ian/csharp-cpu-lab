@@ -9,26 +9,45 @@ namespace CpuBasics
 {
     struct Point3
     {
-        public float X;
-        public float Y;
-        public float Z;
+        public float X; // <------------- Used for calculations
+        public int SomeField1;
+        public double SomeField2;
+        public float Y; // <------------- Used for calculations
+        public bool SomeField3;
+        public double SomeField4;
+        public double SomeField5;
+        public double SomeField6;
+        public float Z; // <------------- Used for calculations
+        public double SomeField7;
+        public bool SomeField8;
+        public double SomeField9;
+
+        float Normalize() => (float)Math.Sqrt(X * X + Y * Y + Z * Z); // <-- Adds "Method Table" to struct header
     }
 
-    [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
+    [SimpleJob(RunStrategy.ColdStart, launchCount: 1)]
     public class AoSvsSoA
     {
+        [Params(4096)]
+        public int ArraySize { get; set; }
+
         // Array of structs
-        private readonly Point3[] pts = new Point3[4096];
+        private Point3[] pts;
 
         // Reorganized as structure of arrays
-        private readonly float[] xs = new float[4096];
-        private readonly float[] ys = new float[4096];
-        private readonly float[] zs = new float[4096];
+        private float[] xs;
+        private float[] ys;
+        private float[] zs;
 
         [GlobalSetup]
         public void Setup()
         {
             var rand = new Random(42);
+
+            pts = new Point3[ArraySize];
+            xs = new float[ArraySize];
+            ys = new float[ArraySize];
+            zs = new float[ArraySize];
 
             for (int i = 0; i < pts.Length; ++i)
             {
@@ -45,7 +64,7 @@ namespace CpuBasics
         }
 
         [Benchmark]
-        public void VectorNormNaive()
+        public void VectorNormAoS()
         {
             for (int i = 0; i < pts.Length; ++i)
             {
@@ -58,6 +77,20 @@ namespace CpuBasics
                 pt.Z /= norm;
 
                 pts[i] = pt;
+            }
+        }
+
+        [Benchmark]
+        public void VectorNormSoA()
+        {
+            // Note: Data reorganized as structure of arrays
+            for (int i = 0; i < xs.Length; ++i)
+            {
+                float norm = (float)Math.Sqrt(xs[i] * xs[i] + ys[i] * ys[i] + zs[i] * zs[i]);
+
+                xs[i] /= norm;
+                ys[i] /= norm;
+                zs[i] /= norm;
             }
         }
 

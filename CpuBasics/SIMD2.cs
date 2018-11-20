@@ -23,7 +23,7 @@ namespace CpuBasics
             matrixB = new float[MatrixDimension * MatrixDimension];
             matrixC = new float[MatrixDimension * MatrixDimension];
 
-        var rand = new Random(42);
+            var rand = new Random(42);
 
             for (int i = 0; i < matrixA.Length; ++i)
             {
