@@ -51,7 +51,7 @@ Each cache miss slows down the overall process because after a cache miss, the c
 a higher level cache, such as L1, L2, L3 and random access memory (RAM) for that data. 
 Further, a new entry is created and copied in cache before it can be accessed by the processor.
 
-#### Benchmark #1 - sequential data access
+#### Benchmark #1 - sequential vs random data access
 ```
           Method | MatrixDimension |        Mean |      Error |    StdDev |      Median |
 ---------------- |---------------- |------------:|-----------:|----------:|------------:|
@@ -99,7 +99,7 @@ This applies to reading as well as writing data. Multidimensional arrays should 
 This reflects the order in which the elements are stored in memory. 
 
 #### Hyperthreading
-Usually L1 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L1 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
+Usually L1 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L2 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
 
 #### Guidelines
 Try to answer two questions:
@@ -183,7 +183,8 @@ When such unintentional cache sharing happens, parallel method should use privat
 
 #### Remember
 - Design for parallelization
-- Be careful about hyperthreading that share L1 cache
+- Do not let threads to work wit the same cache lines
+- Be careful about hyperthreading which share L2 cache
 
 ## SIMD
 Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 architecture.
@@ -245,11 +246,15 @@ Consider ECS like
 - Entitas - https://github.com/sschmid/Entitas-CSharp
 - Unity ECS
 
-Remember:
-- TODO
-
 ### ECS
 TODO
+
+### Remember:
+- Fit the cache line (~64b)
+- Fit the highest cache level (~8MiB)
+- "Just" keep most “hot data” in L1/L2/L3…
+- Design for parallelization
+- Do not let threads modify cache lines from the same shared memory locations
 
 ### How-to troubleshoot
 - Modern processors have a PMU with PMCs:
