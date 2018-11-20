@@ -38,8 +38,8 @@ else
 - `bar1()` is a fall-through, which means:
 	```
 	test %x, %y;
-	je .bar; 
-	call foo(); <-- this gets prefetched
+	je .bar2; 
+	call bar1(); <-- this gets prefetched
 	...
 	```
 - In case of branch misprediction a stall is taken if it should go throught bar2() (it can take 20 cycles to load instructions).
@@ -51,7 +51,17 @@ Each cache miss slows down the overall process because after a cache miss, the c
 a higher level cache, such as L1, L2, L3 and random access memory (RAM) for that data. 
 Further, a new entry is created and copied in cache before it can be accessed by the processor.
 
-#### Benchmark
+#### Benchmark #1 - sequential data access
+```
+          Method | MatrixDimension |        Mean |      Error |    StdDev |      Median |
+---------------- |---------------- |------------:|-----------:|----------:|------------:|
+ MatrixMultNaive |             512 |    479.1 ms |  16.272 ms |  76.47 ms |    452.4 ms |
+ MatrixMultReorg |             512 |    258.3 ms |   9.272 ms |  34.98 ms |    248.8 ms |
+ MatrixMultNaive |            1024 | 11,301.5 ms | 135.276 ms | 545.57 ms | 11,118.6 ms |
+ MatrixMultReorg |            1024 |  2,002.1 ms |  13.517 ms |  36.08 ms |  2,000.0 ms |
+```
+
+#### Benchmark #2 - tiling
 ```
       Method |      Mean |    StdErr |    StdDev |    Median |
 ------------ |---------- |---------- |---------- |---------- |
