@@ -69,7 +69,7 @@ namespace CpuBasics
             arrayOfY = new float[ArraySize];
             arrayOfZ = new float[ArraySize];
 
-            for (int i = 0; i < arrayOfPts.Count; ++i)
+            for (int i = 0; i < ArraySize; ++i)
             {
                 arrayOfX[i] = (float)rand.NextDouble();
                 arrayOfY[i] = (float)rand.NextDouble();
