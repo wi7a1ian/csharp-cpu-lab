@@ -84,6 +84,7 @@ namespace CpuBasics
         public void VectorNormSoA()
         {
             // Note: Data reorganized as structure of arrays
+            //      Sequential access + data fits in L1 cache line
             for (int i = 0; i < xs.Length; ++i)
             {
                 float norm = (float)Math.Sqrt(xs[i] * xs[i] + ys[i] * ys[i] + zs[i] * zs[i]);
