@@ -260,8 +260,9 @@ When working with arrays & structs:
   - Classes have additional 16 bytes taken by *Object Header* (8 bytes) and *Method Table Ptr* (8 bytes). Keep that in mind.
 
 #### Struct & class memory layout samples
+##### Struct that get its fields reordered
 ```csharp
-public struct VectorThatDontFitCacheLine { // Contains Object Header (8 bytes) and Method Table Ptr (8 bytes)
+public struct VectorThatDontFitCacheLine {
 	public float SomeField1;
 	public float X; // <------------- Used for calculations
 	public int SomeField2;
@@ -278,7 +279,7 @@ public struct VectorThatDontFitCacheLine { // Contains Object Header (8 bytes) a
 	SomeSubclass ObjectByRef; // Will be moved to the beginning of the struct
 }
 ```
-
+Fields will get reordered, with ref types at the top and then depending on the type size in descending order. Pay attention to the `Z` field which gets pushed to another cache line.
 ```
 Size: 80 bytes. Paddings: 2 bytes (%2 of empty space)
 |===========================================|
@@ -313,7 +314,7 @@ Size: 80 bytes. Paddings: 2 bytes (%2 of empty space)
 | 72-79: DateTime UpdateTime (8 bytes)      |
 |===========================================|
 ```
-
+##### Struct that won't change its layout
 ```csharp
 [StructLayout(LayoutKind.Sequential)]
 public struct VectorThatFitCacheLine {
@@ -333,7 +334,7 @@ public struct VectorThatFitCacheLine {
 	//SomeSubclass ObjectByRef;     // Will force LayoutKind.Auto too
 }
 ```
-
+Uncommenting `DateTime` would force `LayoutKind.Auto` on our struct, also `LayoutKind.Sequential` won't stop `SomeSubclass` reference type from being allocated at the beginning of the struct.
 ```
 Size: 80 bytes. Paddings: 18 bytes (%22 of empty space)
 |====================================|
@@ -368,7 +369,7 @@ Size: 80 bytes. Paddings: 18 bytes (%22 of empty space)
 | 73-79: padding (7 bytes)           |
 |====================================|
 ```
-
+##### Layout of a class
 ```csharp
 public class ClassThatDontFitCacheLine // Contains Object Header (8 bytes) and Method Table Ptr (8 bytes)
 {
@@ -384,7 +385,7 @@ public class ClassThatDontFitCacheLine // Contains Object Header (8 bytes) and M
 	SomeSubclass ObjectByRef;
 }
 ```
-
+Pay attention to the header that takes 16 bytes and may cause some of the fields being pushed beyond 64 bytes.
 ```
 Size: 64 bytes. Paddings: 7 bytes (%10 of empty space)
 |===========================================|
@@ -424,6 +425,8 @@ Consider ECS like
 - Unity ECS
 
 ### Remember:
+- Use common sense
+- Use benchmarking/profiling tools
 - Fit the cache line (~64b)
 - Fit the highest cache level (~8MiB)
 - "Just" keep most “hot data” in L1/L2/L3…
