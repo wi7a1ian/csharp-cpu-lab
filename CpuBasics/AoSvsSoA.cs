@@ -7,112 +7,133 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 
 namespace CpuBasics
-{ 
-    public class Point3ThatDontFitCacheLine
-    {
-        public float X; // <------------- Used for calculations
-        public int SomeField1;
-        public double SomeField2;
-        public float Y; // <------------- Used for calculations
-        public bool SomeField3;
-        public double SomeField4;
-        public double SomeField5;
-        public double SomeField6;
-        public double SomeField7;
-        public bool SomeField8;
-        public double SomeField9;
-        public double SomeField10;
-        public double SomeField11;
-        public double SomeField12;
-        DateTime UpdateTime;
-        public float Z; // <------------- Used for calculations
-
-        public float Normalize() => (float)Math.Sqrt(X * X + Y * Y + Z * Z); // <-- Adds "Method Table" to struct header
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Point3ThatFitCacheLine
-    {
-        public float X; // <------------- Used for calculations
-        public double SomeField1;
-        public float Y; // <------------- Used for calculations
-        public float Z; // <------------- Used for calculations
-        public double SomeField2;
-        DateTime UpdateTime;
-    }
-
+{
     [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
     public class AoSvsSoA
     {
-        [Params(1024*64)]
+        public class SomeSubclass
+        {
+            string Name;
+            int Number;
+        }
+
+        public struct VectorThatDontFitCacheLine // Contains Object Header (8 bytes) and Method Table Ptr (8 bytes)
+        {
+            public float SomeField1;
+            public float X; // <------------- Used for calculations
+            public int SomeField2;
+            public float Y; // <------------- Used for calculations
+            public float Z; // <------------- Used for calculations
+            public double SomeField3;
+            public bool SomeField4;
+            public double SomeField5;
+            public double SomeField6;
+            public double SomeField7;
+            public double SomeField8;
+            public bool SomeField9;
+            DateTime UpdateTime;
+            SomeSubclass ObjectByRef; // Will be moved to the beginning of the struct
+
+            public float GetNormFactor() => (float)Math.Sqrt(X * X + Y * Y + Z * Z); // Does not add MT to the header
+
+            public void Normalize()  // Does not add MT to the header
+            {
+                var norm = GetNormFactor();
+
+                X /= norm;
+                Y /= norm;
+                Z /= norm;
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct VectorThatFitCacheLine
+        {
+            public float SomeField1;
+            public float X; // <------------- Used for calculations
+            public int SomeField2;
+            public float Y; // <------------- Used for calculations
+            public float Z; // <------------- Used for calculations
+            public double SomeField3;
+            public bool SomeField4;
+            public double SomeField5;
+            public double SomeField6;
+            public double SomeField7;
+            public double SomeField8;
+            public bool SomeField9;
+            //DateTime UpdateTime;          // LayoutKind.Auto inside! will force same layout type in our struct
+            //SomeSubclass ObjectByRef;     // Will force LayoutKind.Auto too
+
+            public float GetNormFactor() => (float)Math.Sqrt(X * X + Y * Y + Z * Z); // Does not add MT to the header
+
+            public void Normalize()  // Does not add MT to the header
+            {
+                var norm = GetNormFactor();
+
+                X /= norm;
+                Y /= norm;
+                Z /= norm;
+            }
+        }
+
+        public struct Vectors
+        {
+            public float[] arrayOfX;
+            public float[] arrayOfY;
+            public float[] arrayOfZ;
+        }
+
+        [Params(1024*512)]
         public int ArraySize { get; set; }
 
         // Array of structs that don't fit the cache line
-        private List<Point3ThatDontFitCacheLine> arrayOfPts;
+        private VectorThatDontFitCacheLine[] arrayOfStructs;
 
         // Array of structs that fit the cache line
-        private List<Point3ThatFitCacheLine> arrayOfPtsCL;
+        private VectorThatFitCacheLine[] arrayOfStructsCL;
 
         // Reorganized as structure of arrays
-        private float[] arrayOfX;
-        private float[] arrayOfY;
-        private float[] arrayOfZ;
+        private Vectors vectors;
+        
 
         [GlobalSetup]
         public void Setup()
         {
             var rand = new Random(42);
 
-            arrayOfPts = new List<Point3ThatDontFitCacheLine>(ArraySize);
-            arrayOfPtsCL = new List<Point3ThatFitCacheLine>(ArraySize);
-            arrayOfX = new float[ArraySize];
-            arrayOfY = new float[ArraySize];
-            arrayOfZ = new float[ArraySize];
+            arrayOfStructs = new VectorThatDontFitCacheLine[ArraySize];
+            arrayOfStructsCL = new VectorThatFitCacheLine[ArraySize];
+            vectors.arrayOfX = new float[ArraySize];
+            vectors.arrayOfY = new float[ArraySize];
+            vectors.arrayOfZ = new float[ArraySize];
 
             for (int i = 0; i < ArraySize; ++i)
             {
-                arrayOfX[i] = (float)rand.NextDouble();
-                arrayOfY[i] = (float)rand.NextDouble();
-                arrayOfZ[i] = (float)rand.NextDouble();
+                vectors.arrayOfX[i] = (float)rand.NextDouble();
+                vectors.arrayOfY[i] = (float)rand.NextDouble();
+                vectors.arrayOfZ[i] = (float)rand.NextDouble();
 
-                arrayOfPts.Add(new Point3ThatDontFitCacheLine
+                arrayOfStructs[i] = new VectorThatDontFitCacheLine
                 {
-                    X = arrayOfX[i],
-                    Y = arrayOfY[i],
-                    Z = arrayOfZ[i]
-                });
-                arrayOfPtsCL.Add(new Point3ThatFitCacheLine
+                    X = vectors.arrayOfX[i],
+                    Y = vectors.arrayOfY[i],
+                    Z = vectors.arrayOfZ[i]
+                };
+                arrayOfStructsCL[i] = new VectorThatFitCacheLine
                 {
-                    X = arrayOfX[i],
-                    Y = arrayOfY[i],
-                    Z = arrayOfZ[i]
-                });
+                    X = vectors.arrayOfX[i],
+                    Y = vectors.arrayOfY[i],
+                    Z = vectors.arrayOfZ[i]
+                };
             }
         }
 
         [Benchmark]
         public void VectorNormAoS()
         {
-            for (int i = 0; i < arrayOfPts.Count; ++i)
+            for (int i = 0; i < arrayOfStructs.Length; ++i)
             {
-                Point3ThatDontFitCacheLine pt = arrayOfPts[i];
-
-                float norm = pt.Normalize();
-
-                pt.X /= norm;
-                pt.Y /= norm;
-                pt.Z /= norm;
-
-                arrayOfPts[i] = pt;
-            }
-        }
-
-        [Benchmark]
-        public void VectorNormAoSFitCL()
-        {
-            for (int i = 0; i < arrayOfPts.Count; ++i)
-            {
-                Point3ThatFitCacheLine pt = arrayOfPtsCL[i];
+                VectorThatDontFitCacheLine pt = arrayOfStructs[i];
 
                 float norm = (float)Math.Sqrt(pt.X * pt.X + pt.Y * pt.Y + pt.Z * pt.Z);
 
@@ -120,7 +141,42 @@ namespace CpuBasics
                 pt.Y /= norm;
                 pt.Z /= norm;
 
-                arrayOfPtsCL[i] = pt;
+                arrayOfStructs[i] = pt;
+            }
+        }
+
+        [Benchmark]
+        public void VectorNormAoSViaMember()
+        {
+            for (int i = 0; i < arrayOfStructs.Length; ++i)
+            {
+                arrayOfStructsCL[i].Normalize();
+            }
+        }
+
+        [Benchmark]
+        public void VectorNormAoSFitCL()
+        {
+            for (int i = 0; i < arrayOfStructs.Length; ++i)
+            {
+                VectorThatFitCacheLine pt = arrayOfStructsCL[i];
+
+                float norm = (float)Math.Sqrt(pt.X * pt.X + pt.Y * pt.Y + pt.Z * pt.Z);
+
+                pt.X /= norm;
+                pt.Y /= norm;
+                pt.Z /= norm;
+
+                arrayOfStructsCL[i] = pt;
+            }
+        }
+
+        [Benchmark]
+        public void VectorNormAoSFitCLViaMember()
+        {
+            for (int i = 0; i < arrayOfStructs.Length; ++i)
+            {
+                arrayOfStructsCL[i].Normalize();
             }
         }
 
@@ -129,13 +185,15 @@ namespace CpuBasics
         {
             // Note: Data reorganized as structure of arrays
             //      Sequential access + data fits in L1 cache line
-            for (int i = 0; i < arrayOfX.Length; ++i)
+            for (int i = 0; i < vectors.arrayOfX.Length; ++i)
             {
-                float norm = (float)Math.Sqrt(arrayOfX[i] * arrayOfX[i] + arrayOfY[i] * arrayOfY[i] + arrayOfZ[i] * arrayOfZ[i]);
+                float norm = (float)Math.Sqrt(vectors.arrayOfX[i] * vectors.arrayOfX[i] 
+                    + vectors.arrayOfY[i] * vectors.arrayOfY[i] 
+                    + vectors.arrayOfZ[i] * vectors.arrayOfZ[i]);
 
-                arrayOfX[i] /= norm;
-                arrayOfY[i] /= norm;
-                arrayOfZ[i] /= norm;
+                vectors.arrayOfX[i] /= norm;
+                vectors.arrayOfY[i] /= norm;
+                vectors.arrayOfZ[i] /= norm;
             }
         }
 
@@ -144,11 +202,11 @@ namespace CpuBasics
         {
             // Note: Data reorganized as structure of arrays
             int vecSize = Vector<float>.Count;
-            for (int i = 0; i < arrayOfX.Length; i += vecSize)
+            for (int i = 0; i < vectors.arrayOfX.Length; i += vecSize)
             {
-                Vector<float> x = new Vector<float>(arrayOfX, i);
-                Vector<float> y = new Vector<float>(arrayOfY, i);
-                Vector<float> z = new Vector<float>(arrayOfZ, i);
+                Vector<float> x = new Vector<float>(vectors.arrayOfX, i);
+                Vector<float> y = new Vector<float>(vectors.arrayOfY, i);
+                Vector<float> z = new Vector<float>(vectors.arrayOfZ, i);
 
                 Vector<float> norm = Vector.SquareRoot(x * x + y * y + z * z);
 
@@ -156,9 +214,9 @@ namespace CpuBasics
                 y /= norm;
                 z /= norm;
 
-                x.CopyTo(arrayOfX, i);
-                y.CopyTo(arrayOfY, i);
-                z.CopyTo(arrayOfZ, i);
+                x.CopyTo(vectors.arrayOfX, i);
+                y.CopyTo(vectors.arrayOfY, i);
+                z.CopyTo(vectors.arrayOfZ, i);
             }
         }
     }
