@@ -99,21 +99,19 @@ This applies to reading as well as writing data. Multidimensional arrays should 
 This reflects the order in which the elements are stored in memory. 
 
 #### Hyperthreading
-Usually L1 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L2 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
+Usually L1 & L2 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L2 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
 
-#### Guidelines
-Try to answer two questions:
+#### Important questions to answer
 - How big is your cache line?
 - What's the most commonly accessed data?
 
-When iterating over arrays, consider CPU cache sizes (L1=64kb, L2=2MB, L3=8MB) and process only X (= L1 size) bytes at a time for best performance gain.
-Remember about critical stride. I.E: when acessing memory on Intel Core i7-8550U try not to jump by more than 128KiB / 8-ways = 16KiB to maximize L1 cache.
-Usually smallest cache line is 64 bytes, consider structs no larger that this value.
-
 #### Remember
-- Fit the L1 cache line (64 bytes) when working with structs
-- Keep the data used for one computation close (*array-of-structs*) so that it can be accessed sequentially and loaded into one cache line.
-- Remember about critical stride when working with arrays/matrices/streams/buffers 
+- Predictable access patterns are faster. Favor sequential access over random.
+- Large benefit is in hitting faster cache levels.
+- Usually smallest cache line is 64 bytes, consider structs no larger that this value in order to keep the data used for one computation close.
+- Keep the data used for heavy computations close (aka Access Locality), be it structs or arrays. Consder techniques like *tiling*.
+- Strided memory access - when iterating over arrays, consider small strides (steps of size of a cache line). The smaler the linear stride is, the better the performance is since the data can be prefetched.
+- Remember about critical stride when working with arrays/matrices/streams/buffers . I.e: when acessing memory on Intel Core i7-8550U try not to jump by more than 128KiB / 8-ways = 16KiB to maximize L1 cache utilization.
 
 [Numbers everyone should know](https://surana.wordpress.com/2009/01/01/numbers-everyone-should-know/)
 
@@ -177,8 +175,9 @@ When such unintentional cache sharing happens, parallel method should use privat
 ```
 
 #### Remember
-- Design for parallelization
-- Do not let threads to work wit the same cache lines
+- *Design for parallelization*
+- Do not let threads to work with the same cache lines. Take care to avoid data sharing problems (same shared memory locations).
+- Consider lock-free solutions
 - Be careful about hyperthreading which share L2 cache
 
 ## SIMD
@@ -428,10 +427,11 @@ Consider ECS like
 - Fit the cache line (~64b)
 - Fit the highest cache level (~8MiB)
 - "Just" keep most “hot data” in L1/L2/L3…
+- Avoid non-sequential access
 - Design for parallelization
   - Do not let threads modify cache lines from the same shared memory locations
   - Lock-free solutions
-- Avoid non-sequential access
+- Utilize Vector<T> or anything that utilize SSE (SIMD) instructions
 - Consider moving from AOS to SOA
 
 ### How-to troubleshoot
