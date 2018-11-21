@@ -211,24 +211,34 @@ Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 
 ### AoS vs SoA
 Making programs that can use predictable memory patterns is important. It is even more important with a threaded program, so that the memory requests do not jump all over; otherwise the processing unit will be waiting for memory requests to be fulfilled.
 
-Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When working with collections try to look for *hotpoints* that use several class/struct fields for calculations and then try to keep that data close. If the data is repeatively modified the same way for multiple items, then consider switching to struct-of-arrays approach instead. The latter one will be more beneficial from vectorization (SIMD instructions) and avoid cache misses thanks to sequential data access. 
+Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When working with collections of objects try to look for *hotpoints* that use several class/struct fields for calculations and then try to keep that data close. If the data is repeatively modified the same way for multiple items, then consider switching to struct-of-arrays approach instead. The latter one will be more beneficial from vectorization (SIMD instructions) and has beter chances to avoid cache misses thanks to sequential data access. 
+
+### Diagrams
+#### AoC
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-AoS-Class.svg)
+#### AoS
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-AoS-Struct.svg)
+#### SoA
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-SoA.svg)
 
 #### Benchmark #1
 ```
-          Method |     Mean |    Error |    StdDev |   Median |
----------------- |---------:|---------:|----------:|---------:|
- VectorNormNaive | 55.87 us | 14.15 us |  95.62 us | 43.03 us |
-  VectorNormSimd | 39.99 us | 42.36 us | 286.18 us | 11.05 us |
+                      Method | ArraySize |      Mean |     Error |    StdDev |    Median |
+---------------------------- |---------- |----------:|----------:|----------:|----------:|
+               VectorNormAoS |    524288 | 15.320 ms | 0.9692 ms | 2.8577 ms | 13.961 ms |
+      VectorNormAoSViaMember |    524288 |  6.267 ms | 0.1727 ms | 0.5091 ms |  6.038 ms |
+          VectorNormAoSFitCL |    524288 |  8.832 ms | 0.3219 ms | 0.9492 ms |  8.533 ms |
+ VectorNormAoSFitCLViaMember |    524288 |  6.515 ms | 0.2505 ms | 0.7386 ms |  6.240 ms |
+               VectorNormSoA |    524288 |  5.497 ms | 0.1098 ms | 0.2855 ms |  5.439 ms |
+              VectorNormSimd |    524288 |  1.464 ms | 0.0737 ms | 0.2172 ms |  1.432 ms |
 ```
 
 #### Benchmark #2
 ```
-                 Method | ArraySize |       Mean |    Error |   StdDev |     Median |
------------------------ |---------- |-----------:|---------:|---------:|-----------:|
-          VectorNormAoS |     65536 | 1,423.7 us | 50.12 us | 147.8 us | 1,383.0 us |
- VectorNormAoSCacheLine |     65536 |   756.0 us | 37.37 us | 110.2 us |   730.5 us |
-          VectorNormSoA |     65536 |   686.9 us | 40.17 us | 118.4 us |   673.8 us |
-         VectorNormSimd |     65536 |   170.5 us | 60.24 us | 177.6 us |   152.4 us |
+        Method | ArraySize |     Mean |     Error |    StdDev |   Median |
+-------------- |---------- |---------:|----------:|----------:|---------:|
+ VectorNormAoC |    524288 | 6.594 ms | 0.1747 ms | 0.5152 ms | 6.419 ms |
+ VectorNormAoS |    524288 | 6.019 ms | 0.1196 ms | 0.3252 ms | 5.936 ms |
 ```
 
 #### Guidelines
@@ -245,14 +255,174 @@ It is often more efficient to allocate one big block of memory for all the objec
 
 When working with arrays & structs:
 - Look at the operations in the loop and decide if it is more beneficial to move from AoS to SoA to guarantee sequential memory access.
-- In C# references are located first (by the JIT compiler). It is caused by automatic layout that places refs right after struct header and method map.
-- Apply `[StructLayout(LayoutKind.Sequential)]` to fix this, just be carefull for structs used internally because they can have `LayoutKind.Auto` like DateTime does.
+- In C#
+  - Apply `[StructLayout(LayoutKind.Sequential)]`to a struct to stop auto alignment, just be carefull for structs used internally because they can have `LayoutKind.Auto` like DateTime does.
+  - Reference types are always located first (by the JIT compiler).
+  - Classes have additional 16 bytes taken by *Object Header* (8 bytes) and *Method Table Ptr* (8 bytes). Keep that in mind.
+
+#### Struct & class memory layout samples
+```csharp
+public struct VectorThatDontFitCacheLine { // Contains Object Header (8 bytes) and Method Table Ptr (8 bytes)
+	public float SomeField1;
+	public float X; // <------------- Used for calculations
+	public int SomeField2;
+	public float Y; // <------------- Used for calculations
+	public float Z; // <------------- Used for calculations
+	public double SomeField3;
+	public bool SomeField4;
+	public double SomeField5;
+	public double SomeField6;
+	public double SomeField7;
+	public double SomeField8;
+	public bool SomeField9;
+	DateTime UpdateTime;
+	SomeSubclass ObjectByRef; // Will be moved to the beginning of the struct
+}
+```
+
+```
+Size: 80 bytes. Paddings: 2 bytes (%2 of empty space)
+|===========================================|
+|   0-7: SomeSubclass ObjectByRef (8 bytes) |
+|-------------------------------------------|
+|  8-15: Double SomeField3 (8 bytes)        |
+|-------------------------------------------|
+| 16-23: Double SomeField5 (8 bytes)        |
+|-------------------------------------------|
+| 24-31: Double SomeField6 (8 bytes)        |
+|-------------------------------------------|
+| 32-39: Double SomeField7 (8 bytes)        |
+|-------------------------------------------|
+| 40-47: Double SomeField8 (8 bytes)        |
+|-------------------------------------------|
+| 48-51: Single SomeField1 (4 bytes)        |
+|-------------------------------------------|
+| 52-55: Single X (4 bytes)                 |
+|-------------------------------------------|
+| 56-59: Int32 SomeField2 (4 bytes)         |
+|-------------------------------------------|
+| 60-63: Single Y (4 bytes)                 |
+|-------------------------------------------|
+| 64-67: Single Z (4 bytes)                 |
+|-------------------------------------------|
+|    68: Boolean SomeField4 (1 byte)        |
+|-------------------------------------------|
+|    69: Boolean SomeField9 (1 byte)        |
+|-------------------------------------------|
+| 70-71: padding (2 bytes)                  |
+|-------------------------------------------|
+| 72-79: DateTime UpdateTime (8 bytes)      |
+|===========================================|
+```
+
+```csharp
+[StructLayout(LayoutKind.Sequential)]
+public struct VectorThatFitCacheLine {
+	public float SomeField1;
+	public float X; // <------------- Used for calculations
+	public int SomeField2;
+	public float Y; // <------------- Used for calculations
+	public float Z; // <------------- Used for calculations
+	public double SomeField3;
+	public bool SomeField4;
+	public double SomeField5;
+	public double SomeField6;
+	public double SomeField7;
+	public double SomeField8;
+	public bool SomeField9;
+	//DateTime UpdateTime;          // LayoutKind.Auto inside! will force same layout type in our struct
+	//SomeSubclass ObjectByRef;     // Will force LayoutKind.Auto too
+}
+```
+
+```
+Size: 80 bytes. Paddings: 18 bytes (%22 of empty space)
+|====================================|
+|   0-3: Single SomeField1 (4 bytes) |
+|------------------------------------|
+|   4-7: Single X (4 bytes)          |
+|------------------------------------|
+|  8-11: Int32 SomeField2 (4 bytes)  |
+|------------------------------------|
+| 12-15: Single Y (4 bytes)          |
+|------------------------------------|
+| 16-19: Single Z (4 bytes)          |
+|------------------------------------|
+| 20-23: padding (4 bytes)           |
+|------------------------------------|
+| 24-31: Double SomeField3 (8 bytes) |
+|------------------------------------|
+|    32: Boolean SomeField4 (1 byte) |
+|------------------------------------|
+| 33-39: padding (7 bytes)           |
+|------------------------------------|
+| 40-47: Double SomeField5 (8 bytes) |
+|------------------------------------|
+| 48-55: Double SomeField6 (8 bytes) |
+|------------------------------------|
+| 56-63: Double SomeField7 (8 bytes) |
+|------------------------------------|
+| 64-71: Double SomeField8 (8 bytes) |
+|------------------------------------|
+|    72: Boolean SomeField9 (1 byte) |
+|------------------------------------|
+| 73-79: padding (7 bytes)           |
+|====================================|
+```
+
+```csharp
+public class ClassThatDontFitCacheLine // Contains Object Header (8 bytes) and Method Table Ptr (8 bytes)
+{
+	public float X; // <------------- Used for calculations
+	public float Y; // <------------- Used for calculations
+	public float Z; // <------------- Used for calculations
+	public int SomeField1;
+	public double SomeField2;
+	public double SomeField3;
+	public bool SomeField4;
+	public double SomeField5;
+	public double SomeField6;
+	SomeSubclass ObjectByRef;
+}
+```
+
+```
+Size: 64 bytes. Paddings: 7 bytes (%10 of empty space)
+|===========================================|
+| Object Header (8 bytes)                   |
+|-------------------------------------------|
+| Method Table Ptr (8 bytes)                |
+|===========================================|
+|   0-7: SomeSubclass ObjectByRef (8 bytes) |
+|-------------------------------------------|
+|  8-15: Double SomeField2 (8 bytes)        |
+|-------------------------------------------|
+| 16-23: Double SomeField3 (8 bytes)        |
+|-------------------------------------------|
+| 24-31: Double SomeField5 (8 bytes)        |
+|-------------------------------------------|
+| 32-39: Double SomeField6 (8 bytes)        |
+|-------------------------------------------|
+| 40-43: Single X (4 bytes)                 |
+|-------------------------------------------|
+| 44-47: Single Y (4 bytes)                 |
+|-------------------------------------------|
+| 48-51: Single Z (4 bytes)                 |
+|-------------------------------------------|
+| 52-55: Int32 SomeField1 (4 bytes)         |
+|-------------------------------------------|
+|    56: Boolean SomeField4 (1 byte)        |
+|-------------------------------------------|
+| 57-63: padding (7 bytes)                  |
+|===========================================|
+```
+
+### ECS - TODO
+TODO
+
 Consider ECS like
 - Entitas - https://github.com/sschmid/Entitas-CSharp
 - Unity ECS
-
-### ECS
-TODO
 
 ### Remember:
 - Fit the cache line (~64b)
