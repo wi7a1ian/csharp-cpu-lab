@@ -107,6 +107,7 @@ Usually L1 & L2 cache lines are private (not shared between threads), but enabli
 
 #### Remember
 - Predictable access patterns are faster. Favor sequential access over random.
+- Large benefit is in hitting faster cache levels.
 - Usually smallest cache line is 64 bytes, consider structs no larger that this value in order to keep the data used for one computation close.
 - Keep the data used for heavy computations close (aka Access Locality), be it structs or arrays. Consder techniques like *tiling*.
 - Strided memory access - when iterating over arrays, consider small strides (steps of size of a cache line). The smaler the linear stride is, the better the performance is since the data can be prefetched.
@@ -174,8 +175,9 @@ When such unintentional cache sharing happens, parallel method should use privat
 ```
 
 #### Remember
-- Design for parallelization
-- Do not let threads to work wit the same cache lines
+- *Design for parallelization*
+- Do not let threads to work with the same cache lines. Take care to avoid data sharing problems (same shared memory locations).
+- Consider lock-free solutions
 - Be careful about hyperthreading which share L2 cache
 
 ## SIMD
@@ -425,10 +427,11 @@ Consider ECS like
 - Fit the cache line (~64b)
 - Fit the highest cache level (~8MiB)
 - "Just" keep most “hot data” in L1/L2/L3…
+- Avoid non-sequential access
 - Design for parallelization
   - Do not let threads modify cache lines from the same shared memory locations
   - Lock-free solutions
-- Avoid non-sequential access
+- Utilize Vector<T> or anything that utilize SSE (SIMD) instructions
 - Consider moving from AOS to SOA
 
 ### How-to troubleshoot
