@@ -250,7 +250,7 @@ You may choose to align large objects and arrays by the cache line size, which i
 This makes sure that the beginning of the object or array coincides with the beginning of a cache line. 
 Some compilers will align large static arrays automatically.
 
-It is often more efficient to allocate one big block of memory for all the objects (memory pooling) than to allocate a small block for each object. (List vs Vector in C++)
+It is often more efficient to allocate one big block of memory for all the objects (memory pooling) than to allocate a small block for each object (List vs Vector in C++). Its also more reasonable to reuse objects instead of deallocating.
 
 When working with arrays & structs:
 - Look at the operations in the loop and decide if it is more beneficial to move from AoS to SoA to guarantee sequential memory access.
