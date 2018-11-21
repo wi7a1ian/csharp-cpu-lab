@@ -99,21 +99,16 @@ This applies to reading as well as writing data. Multidimensional arrays should 
 This reflects the order in which the elements are stored in memory. 
 
 #### Hyperthreading
-Usually L1 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L2 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
+Usually L1 & L2 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L2 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
 
-#### Guidelines
-Try to answer two questions:
+#### Important questions to answer
 - How big is your cache line?
 - What's the most commonly accessed data?
 
-When iterating over arrays, consider CPU cache sizes (L1=64kb, L2=2MB, L3=8MB) and process only X (= L1 size) bytes at a time for best performance gain.
-Remember about critical stride. I.E: when acessing memory on Intel Core i7-8550U try not to jump by more than 128KiB / 8-ways = 16KiB to maximize L1 cache.
-Usually smallest cache line is 64 bytes, consider structs no larger that this value.
-
 #### Remember
-- Fit the L1 cache line (64 bytes) when working with structs
-- Keep the data used for one computation close (*array-of-structs*) so that it can be accessed sequentially and loaded into one cache line.
-- Remember about critical stride when working with arrays/matrices/streams/buffers 
+- Usually smallest cache line is 64 bytes, consider structs no larger that this value in order to keep the data used for one computation close.
+- When iterating over arrays, consider processing only X (= L1 size) strides (steps of a cache line size) at a time for best performance gain. The smaler the linear stride is, the better the performance is since the data can be prefetched.
+- Remember about critical stride when working with arrays/matrices/streams/buffers . I.e: when acessing memory on Intel Core i7-8550U try not to jump by more than 128KiB / 8-ways = 16KiB to maximize L1 cache utilization.
 
 [Numbers everyone should know](https://surana.wordpress.com/2009/01/01/numbers-everyone-should-know/)
 
