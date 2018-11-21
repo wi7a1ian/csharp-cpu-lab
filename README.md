@@ -108,6 +108,7 @@ Usually L1 & L2 cache lines are private (not shared between threads), but enabli
 #### Remember
 - Predictable access patterns are faster. Favor sequential access over random.
 - Usually smallest cache line is 64 bytes, consider structs no larger that this value in order to keep the data used for one computation close.
+- Keep the data used for heavy computations close (aka Access Locality), be it structs or arrays. Consder techniques like *tiling*.
 - Strided memory access - when iterating over arrays, consider small strides (steps of size of a cache line). The smaler the linear stride is, the better the performance is since the data can be prefetched.
 - Remember about critical stride when working with arrays/matrices/streams/buffers . I.e: when acessing memory on Intel Core i7-8550U try not to jump by more than 128KiB / 8-ways = 16KiB to maximize L1 cache utilization.
 
