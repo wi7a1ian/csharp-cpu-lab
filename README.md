@@ -99,7 +99,7 @@ This applies to reading as well as writing data. Multidimensional arrays should 
 This reflects the order in which the elements are stored in memory. 
 
 #### Hyperthreading
-Usually L1 & L2 cache lines are private (not shared between threads), but enabling hyperthreads will make them share L2 cache (like L3 is) which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off.
+Usually L1 & L2 cache lines are private (not shared between threads), but enabling hyperthreads will turn on *shared mode*, where the L1 data cache is competitively shared between logical processors, which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off. 
 
 #### Important questions to answer
 - How big is your cache line?
