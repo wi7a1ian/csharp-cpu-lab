@@ -213,6 +213,14 @@ Making programs that can use predictable memory patterns is important. It is eve
 
 Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When working with collections of objects try to look for *hotpoints* that use several class/struct fields for calculations and then try to keep that data close. If the data is repeatively modified the same way for multiple items, then consider switching to struct-of-arrays approach instead. The latter one will be more beneficial from vectorization (SIMD instructions) and has beter chances to avoid cache misses thanks to sequential data access. 
 
+### Diagrams
+#### AoC
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-AoS-Class.svg)
+#### AoS
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-AoS-Struct.svg)
+#### SoA
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-SoA.svg)
+
 #### Benchmark #1
 ```
                       Method | ArraySize |      Mean |     Error |    StdDev |    Median |
