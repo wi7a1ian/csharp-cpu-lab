@@ -9,6 +9,7 @@ namespace CpuBasics
         static void Main(string[] args)
         {
             BenchmarkRunner.Run<BranchPrediction>();
+            //BenchmarkRunner.Run<BranchPrediction2>();
 
             BenchmarkRunner.Run<CacheMissSequentialAccess>();
             BenchmarkRunner.Run<CacheMissTiling>();
@@ -25,6 +26,8 @@ namespace CpuBasics
             BenchmarkRunner.Run<AoCvsAoS>();
             TypeLayout.PrintLayout<AoCvsAoS.ClassThatDontFitCacheLine>(true);
             TypeLayout.PrintLayout<AoCvsAoS.StructThatFitCacheLine>(true);
+
+            //BenchmarkRunner.Run<ECS>();
         }
     }
 }
