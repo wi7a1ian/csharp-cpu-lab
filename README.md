@@ -218,14 +218,14 @@ Making programs that can use predictable memory patterns is important. It is eve
 Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When working with collections of objects try to look for *hotpoints* that use several class/struct fields for calculations and then try to keep that data close. If the data is repeatively modified the same way for multiple items, then consider switching to struct-of-arrays approach instead. The latter one will be more beneficial from vectorization (SIMD instructions) and has beter chances to avoid cache misses thanks to sequential data access. 
 
 ### Diagrams
-#### AoC
+#### AoC - array of classes (ref types in C#)
 ![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-AoS-Class.svg)
-#### AoS
+#### AoS - array of structs (value types in C#)
 ![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-AoS-Struct.svg)
-#### SoA
+#### SoA - struct of arrays
 ![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-SoA.svg)
 
-#### Benchmark #1
+#### Benchmark #1 - AoS vs SoA
 ```
                       Method | ArraySize |      Mean |     Error |    StdDev |    Median |
 ---------------------------- |---------- |----------:|----------:|----------:|----------:|
@@ -237,7 +237,7 @@ Aos-vs-soa term is strongly connected with **Data Oriented Programming**. When w
               VectorNormSimd |    524288 |  1.464 ms | 0.0737 ms | 0.2172 ms |  1.432 ms |
 ```
 
-#### Benchmark #2
+#### Benchmark #2 - AoC vs AoS
 ```
         Method | ArraySize |     Mean |     Error |    StdDev |   Median |
 -------------- |---------- |---------:|----------:|----------:|---------:|
