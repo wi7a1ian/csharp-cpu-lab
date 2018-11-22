@@ -51,24 +51,6 @@ Each cache miss slows down the overall process because after a cache miss, the c
 a higher level cache, such as L1, L2, L3 and random access memory (RAM) for that data. 
 Further, a new entry is created and copied in cache before it can be accessed by the processor.
 
-#### Benchmark #1 - sequential vs random data access
-```
-          Method | MatrixDimension |        Mean |      Error |    StdDev |      Median |
----------------- |---------------- |------------:|-----------:|----------:|------------:|
- MatrixMultNaive |             512 |    479.1 ms |  16.272 ms |  76.47 ms |    452.4 ms |
- MatrixMultReorg |             512 |    258.3 ms |   9.272 ms |  34.98 ms |    248.8 ms |
- MatrixMultNaive |            1024 | 11,301.5 ms | 135.276 ms | 545.57 ms | 11,118.6 ms |
- MatrixMultReorg |            1024 |  2,002.1 ms |  13.517 ms |  36.08 ms |  2,000.0 ms |
-```
-
-#### Benchmark #2 - tiling
-```
-      Method |      Mean |    StdErr |    StdDev |    Median |
------------- |---------- |---------- |---------- |---------- |
- RotateNaive | 8.7432 ms | 0.0400 ms | 0.1385 ms | 8.7250 ms |
- RotateTiled | 2.6486 ms | 0.0265 ms | 0.1092 ms | 2.6250 ms |
-```
-
 #### About the cache organization
 Most caches are organized into lines and sets, i.e: a cache of 8 kb size with a line size of 64 bytes. 
 Each line covers 64 consecutive bytes of memory. One kilobyte is 1024 bytes, so we can calculate that the number of lines is 8*1024/64 = 128. 
@@ -98,8 +80,23 @@ It works somewhat less efficiently when data are accessed backwards and much les
 This applies to reading as well as writing data. Multidimensional arrays should be accessed with the last index changing in the innermost loop. 
 This reflects the order in which the elements are stored in memory. 
 
-#### Hyperthreading
-Usually L1 & L2 cache lines are private (not shared between threads), but enabling hyperthreads will turn on *shared mode*, where the L1 data cache is competitively shared between logical processors, which in turns cause resource contingency. Projects that strongly base on proper L1 cache utilization should turn this feature off. 
+#### Benchmark #1 - sequential vs random data access
+```
+          Method | MatrixDimension |        Mean |      Error |    StdDev |      Median |
+---------------- |---------------- |------------:|-----------:|----------:|------------:|
+ MatrixMultNaive |             512 |    479.1 ms |  16.272 ms |  76.47 ms |    452.4 ms |
+ MatrixMultReorg |             512 |    258.3 ms |   9.272 ms |  34.98 ms |    248.8 ms |
+ MatrixMultNaive |            1024 | 11,301.5 ms | 135.276 ms | 545.57 ms | 11,118.6 ms |
+ MatrixMultReorg |            1024 |  2,002.1 ms |  13.517 ms |  36.08 ms |  2,000.0 ms |
+```
+
+#### Benchmark #2 - tiling
+```
+      Method |      Mean |    StdErr |    StdDev |    Median |
+------------ |---------- |---------- |---------- |---------- |
+ RotateNaive | 8.7432 ms | 0.0400 ms | 0.1385 ms | 8.7250 ms |
+ RotateTiled | 2.6486 ms | 0.0265 ms | 0.1092 ms | 2.6250 ms |
+```
 
 #### Important questions to answer
 - How big is your cache line?
@@ -141,14 +138,19 @@ void NodesTranslateWorldEachRoot(Node* nodes, int count, const Vector3* t);
 void NodesTranslateWorldEachWithParent(Node* nodes, int count, const Vector3* t) 
 ```
 
-### Cache invalidation (cache coherence)
+### Cache invalidation
 **There are only two hard things in computer science: cache invalidation and naming things.**
+
+#### coherence -> contention -> invalidation
+- **cache coherence* - uniformity of shared resource data that ends up stored in multiple local caches; usually coherence is maintanied by MESI protocol
+- **cache contention** - multiple cores trying to write to memory locations that are very close to each other (within one cache line)
+- **cache invalidation** - pocessor changing a memory location and then invalidating the cached values of that memory location across all the cache tiers (L1, L2, L3...)
 
 When working with threads where large object is schared among them (i.e: array), when one thread modifies block of cached data, all other threads that work with the same copy have to re-read the data from the memory, aka invalidate. This is speed up with MESI protocol that requires cache to cache transfer on a miss if the block resides in another cache.
 
 This happens on level of cache lines = 64 bytes.
 
-It is not about two cores accessing same memory location, it is two cores accessing adjecent memory locations which happen to be on the same cache line.
+**It is not about two cores accessing same memory location, it is two cores accessing adjecent memory locations which happen to be on the same cache line.**
 
 When such unintentional cache sharing happens, parallel method should use private memory and then update shared memory when done, or let them modify/access only memory regions that are L1 cache line size (64) bytes away from each other.
 
@@ -158,11 +160,14 @@ When such unintentional cache sharing happens, parallel method should use privat
 - Complex inter-CPU messaging guarantees correct state transitions
 
 #### Invalidation scenario
-1. Data frm the same memory location is in two separate L1 caches from two separate cores.
+1. Data from the same memory location is in two separate L1 caches from two separate cores.
 1. Both are marked as shared.
 1. One core wants to modify the value so it marks it as *exclusive*, which leads to losing the value by the other core (aka *invalidation*).
 1. Value gets modified and goes to the main memory.
 1. The other core has to fetch the value from the memory location once again.
+
+#### Hyperthreading
+Usually L1 & L2 caches are private and are usually not shared among other cores. This is to reduces the chance of cache contention. Enabling hyperthreads will turn on *shared mode*, where the L1 data cache is competitively shared between logical processors, which in turns cause cache contention. Projects that strongly base on proper L1 cache utilization should turn this feature off. 
 
 #### Benchmark
 ```
@@ -178,10 +183,10 @@ When such unintentional cache sharing happens, parallel method should use privat
 - *Design for parallelization*
 - Do not let threads to work with the same cache lines. Take care to avoid data sharing problems (same shared memory locations).
 - Consider lock-free solutions
-- Be careful about hyperthreading which share L2 cache
+- Be careful about hyperthreading which share L1 cache
 
 ## SIMD
-Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 architecture.
+Single-Instruction-Multiple-Data is concept of performing the same operation on multiple data points simultaneously. Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 architecture.
 - Most `C++` compiles enable it by default (`/arch:SSE` or `-march=native` and `-msse2`). Libraries that support SSE are [boost::simd](https://github.com/NumScale/boost.simd), [vc](https://github.com/VcDevel/Vc), [libsimdpp](https://github.com/p12tic/libsimdpp), [cvalarray](http://sci.tuomastonteri.fi/programming/sse), [eigen](http://eigen.tuxfamily.org/index.php?title=FAQ#Vectorization)
 - In `C#` available via `Vector<T>`
 
@@ -191,8 +196,8 @@ Streaming SIMD Extensions (SSE) is an SIMD instruction set extension to the x86 
 --------------- |-------------- |----------- |----------- |-------------- |
     MinMaxNaive |   603.0989 us |  5.2490 us | 20.3293 us |   597.3966 us |
       MinMaxILP | 1,025.9282 us | 10.4831 us | 54.4718 us | 1,024.1082 us |
-     MinMaxSimd |   160.7848 us |  1.5912 us |  9.2784 us |   158.5755 us |
  MinMaxParallel |   416.3257 us |  2.1792 us |  8.4402 us |   416.8833 us |
+     MinMaxSimd |   160.7848 us |  1.5912 us |  9.2784 us |   158.5755 us |
 ```
 
 - ILP option doesn't help because of 
