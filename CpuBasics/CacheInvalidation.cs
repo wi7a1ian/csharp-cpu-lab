@@ -15,7 +15,7 @@ namespace CpuBasics
         [Params(4)]
         public int Parallelism { get; set; }
 
-        private const int stepCount = 100_000_000;
+        private const int stepCount = 10_000_000;
         private const double fromX = 0.0;
         private const double toX = 10.0;
 
@@ -26,11 +26,23 @@ namespace CpuBasics
 
         private void IntegrateHelper(Func<double, double> f, double from, double to, int steps, out double integral)
         {
+            // passing 'integral' as out parameter result in better performance 
+            // probably because array metadata updates & locking is handed different way
             integral = 0.0;
             double stepSize = (to - from) / steps;
             for (int i = 0; i < steps; ++i)
             {
                 integral += stepSize * f(from + ((i + 0.5) * stepSize));
+            }
+        }
+
+        private void IntegrateHelper(Func<double, double> f, double from, double to, int steps, ref double[] arr, int index)
+        {
+            arr[index] = 0.0;
+            double stepSize = (to - from) / steps;
+            for (int i = 0; i < steps; ++i)
+            {
+                arr[index] += stepSize * f(from + ((i + 0.5) * stepSize));
             }
         }
 
@@ -57,7 +69,7 @@ namespace CpuBasics
                 int myIndex = i;
                 threads[i] = new Thread(() =>
                 {
-                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, out partialIntegrals[myIndex]);
+                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, ref partialIntegrals, myIndex);
                 });
                 threads[i].Start();
             }
@@ -82,7 +94,59 @@ namespace CpuBasics
                 int myIndex = i;
                 threads[i] = new Thread(() =>
                 {
-                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, out partialIntegrals[myIndex * 8]);
+                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, ref partialIntegrals, myIndex * 8);
+                });
+                threads[i].Start();
+            }
+
+            foreach (var thread in threads) thread.Join();
+            return partialIntegrals.Sum();
+        }
+
+        [Benchmark]
+        public double IntegrateParallelSharingElemRef()
+        {
+            double[] partialIntegrals = new double[Parallelism];
+            double chunkSize = (toX - fromX) / Parallelism;
+            int chunkSteps = stepCount / Parallelism;
+
+            Thread[] threads = new Thread[Parallelism];
+            for (int i = 0; i < Parallelism; ++i)
+            {
+                double myFrom = fromX + i * chunkSize;
+                double myTo = myFrom + chunkSize;
+                int myIndex = i;
+                threads[i] = new Thread(() =>
+                {
+                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, out partialIntegrals[myIndex]);
+                });
+                threads[i].Start();
+            }
+
+            foreach (var thread in threads) thread.Join();
+            return partialIntegrals.Sum();
+        }
+
+        [Benchmark]
+        public double IntegrateParallelSkevedSkipMeta()
+        {
+            double[] partialIntegrals = new double[Parallelism * 8 + 8]; // + 64 bytes = cache line
+            double chunkSize = (toX - fromX) / Parallelism;
+            int chunkSteps = stepCount / Parallelism;
+
+            Thread[] threads = new Thread[Parallelism];
+            for (int i = 0; i < Parallelism; ++i)
+            {
+                double myFrom = fromX + i * chunkSize;
+                double myTo = myFrom + chunkSize;
+
+                // start not from index 0 but from index 1 
+                // because 0 element in is the same location as array metadata that gets updated often
+                int myIndex = i + 1; 
+
+                threads[i] = new Thread(() =>
+                {
+                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, ref partialIntegrals, myIndex * 8);
                 });
                 threads[i].Start();
             }
