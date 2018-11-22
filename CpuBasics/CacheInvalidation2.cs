@@ -10,7 +10,7 @@ namespace CpuBasics
     [MemoryDiagnoser]
     [SimpleJob(RunStrategy.ColdStart, launchCount: 5)]
     [HardwareCounters(HardwareCounter.LlcMisses)]
-    public class CacheInvalidation
+    public class CacheInvalidation2
     {
         [Params(4)]
         public int Parallelism { get; set; }
@@ -24,24 +24,22 @@ namespace CpuBasics
             return 4.0 / (1 + x * x);
         }
 
-        private void IntegrateHelper(Func<double, double> f, double from, double to, int steps, out double integral)
+        private void IntegrateHelper(Func<double, double> f, double from, double to, int steps, ref double[] arr, int index)
         {
-            // passing 'integral' as out parameter result in better performance 
-            // probably because array metadata updates & locking is handed different way
-            integral = 0.0;
+            arr[index] = 0.0;
             double stepSize = (to - from) / steps;
             for (int i = 0; i < steps; ++i)
             {
-                integral += stepSize * f(from + ((i + 0.5) * stepSize));
+                arr[index] += stepSize * f(from + ((i + 0.5) * stepSize));
             }
         }
 
         [Benchmark]
         public double IntegrateSequential()
         {
-            double integral = 0.0;
-            IntegrateHelper(Function, fromX, toX, stepCount, out integral);
-            return integral;
+            double[] fakeInegralArr = new double[1];
+            IntegrateHelper(Function, fromX, toX, stepCount, ref fakeInegralArr, 0);
+            return fakeInegralArr[0];
         }
 
         [Benchmark]
@@ -59,7 +57,7 @@ namespace CpuBasics
                 int myIndex = i;
                 threads[i] = new Thread(() =>
                 {
-                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, out partialIntegrals[myIndex]);
+                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, ref partialIntegrals, myIndex);
                 });
                 threads[i].Start();
             }
@@ -84,7 +82,7 @@ namespace CpuBasics
                 int myIndex = i;
                 threads[i] = new Thread(() =>
                 {
-                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, out partialIntegrals[myIndex * 8]);
+                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, ref partialIntegrals, myIndex * 8);
                 });
                 threads[i].Start();
             }
@@ -112,33 +110,7 @@ namespace CpuBasics
 
                 threads[i] = new Thread(() =>
                 {
-                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, out partialIntegrals[myIndex * 8]);
-                });
-                threads[i].Start();
-            }
-
-            foreach (var thread in threads) thread.Join();
-            return partialIntegrals.Sum();
-        }
-
-        [Benchmark]
-        public double IntegrateParallelPrivate()
-        {
-            double[] partialIntegrals = new double[Parallelism];
-            double chunkSize = (toX - fromX) / Parallelism;
-            int chunkSteps = stepCount / Parallelism;
-
-            Thread[] threads = new Thread[Parallelism];
-            for (int i = 0; i < Parallelism; ++i)
-            {
-                double myFrom = fromX + i * chunkSize;
-                double myTo = myFrom + chunkSize;
-                int myIndex = i;
-                threads[i] = new Thread(() =>
-                {
-                    double myIntegral = 0.0;
-                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, out myIntegral);
-                    partialIntegrals[myIndex] = myIntegral;
+                    IntegrateHelper(Function, myFrom, myTo, chunkSteps, ref partialIntegrals, myIndex * 8);
                 });
                 threads[i].Start();
             }
