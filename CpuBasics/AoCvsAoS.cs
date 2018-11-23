@@ -29,7 +29,7 @@ namespace CpuBasics
             public double SomeField5;
             public double SomeField6;
             SomeSubclass ObjectByRef;
-        }
+        } // Fields have 64 bytes total, but header adds additional 16 bytes, pushing Z field to separate cache line
 
         public struct StructThatFitCacheLine //  No Object Header and no Method Table
         {
@@ -43,12 +43,12 @@ namespace CpuBasics
             public double SomeField5;
             public double SomeField6;
             SomeSubclass ObjectByRef;
-        }
+        } // Fields have 64 bytes total, they fit one cache line
 
         [Params(1024*512)]
         public int ArraySize { get; set; }
 
-        private List<ClassThatDontFitCacheLine> arrayOfObjects;
+        private ClassThatDontFitCacheLine[] arrayOfObjects;
         private StructThatFitCacheLine[] arrayOfStructs;
 
         [GlobalSetup]
@@ -56,17 +56,18 @@ namespace CpuBasics
         {
             var rand = new Random(42);
 
-            arrayOfObjects = new List<ClassThatDontFitCacheLine>();
+            arrayOfObjects = new ClassThatDontFitCacheLine[ArraySize];
             arrayOfStructs = new StructThatFitCacheLine[ArraySize];
 
             for (int i = 0; i < ArraySize; ++i)
             {
-                arrayOfObjects.Add(new ClassThatDontFitCacheLine
+                arrayOfObjects[i] = new ClassThatDontFitCacheLine
                 {
                     X = (float)rand.NextDouble(),
                     Y = (float)rand.NextDouble(),
                     Z = (float)rand.NextDouble()
-                });
+                };
+
                 arrayOfStructs[i] = new StructThatFitCacheLine
                 {
                     X = arrayOfObjects[i].X,
@@ -79,9 +80,9 @@ namespace CpuBasics
         [Benchmark]
         public void VectorNormAoC()
         {
-            for (int i = 0; i < arrayOfObjects.Count; ++i)
+            for (int i = 0; i < arrayOfObjects.Length; ++i)
             {
-                var vect = arrayOfObjects[i];
+                ref var vect = ref arrayOfObjects[i];
 
                 float norm = (float)Math.Sqrt(vect.X * vect.X + vect.Y * vect.Y + vect.Z * vect.Z);
 
@@ -94,7 +95,7 @@ namespace CpuBasics
         [Benchmark]
         public void VectorNormAoS()
         {
-            for (int i = 0; i < arrayOfObjects.Count; ++i)
+            for (int i = 0; i < arrayOfObjects.Length; ++i)
             {
                 ref var vect = ref arrayOfStructs[i];
 
