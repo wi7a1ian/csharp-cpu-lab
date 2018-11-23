@@ -169,15 +169,29 @@ When such unintentional cache sharing happens, parallel method should use privat
 #### Hyperthreading
 Usually L1 & L2 caches are private and are usually not shared among other cores. This is to reduces the chance of cache contention. Enabling hyperthreads will turn on *shared mode*, where the L1 data cache is competitively shared between logical processors, which in turns cause cache contention. Projects that strongly base on proper L1 cache utilization should turn this feature off. 
 
-#### Benchmark
+#### Benchmark #1 - element access by `ref`/`out`
 ```
-                   Method | Parallelism |     Mean |    Error |    StdDev |   Median | Allocated |
-------------------------- |------------ |---------:|---------:|----------:|---------:|----------:|
-      IntegrateSequential |           4 | 445.4 ms | 6.122 ms | 23.097 ms | 438.3 ms |      64 B |
- IntegrateParallelSharing |           4 | 369.6 ms | 3.627 ms | 15.672 ms | 396.8 ms |    1752 B |
-  IntegrateParallelSkeved |           4 | 234.0 ms | 1.328 ms |  3.403 ms | 232.7 ms |    1976 B |
- IntegrateParallelPrivate |           4 | 233.0 ms | 1.086 ms |  2.744 ms | 232.6 ms |    1752 B |
+                          Method | Parallelism |     Mean |     Error |   StdDev |   Median | Allocated |
+-------------------------------- |------------ |---------:|----------:|---------:|---------:|----------:|
+             IntegrateSequential |           - | 56.06 ms | 2.6151 ms | 7.711 ms | 53.79 ms |      64 B |
+        IntegrateParallelSharing |           4 | 40.27 ms | 2.0944 ms | 6.175 ms | 38.09 ms |    1752 B |
+         IntegrateParallelSkeved |           4 | 27.11 ms | 1.4113 ms | 4.161 ms | 25.51 ms |    1976 B |
+        IntegrateParallelPrivate |           4 | 26.04 ms | 0.8267 ms | 2.438 ms | 25.19 ms |    1752 B |
 ```
+
+#### Benchmark #2 - raw array access
+```
+                          Method | Parallelism |      Mean |     Error |    StdDev |    Median | Allocated |
+-------------------------------- |------------ |----------:|----------:|----------:|----------:|----------:|
+             IntegrateSequential |           - |  46.39 ms | 0.9260 ms |  2.306 ms |  45.83 ms |      96 B |
+        IntegrateParallelSharing |           4 | 122.82 ms | 5.1350 ms | 15.141 ms | 118.79 ms |    1752 B |
+         IntegrateParallelSkeved |           4 |  49.05 ms | 0.9590 ms |  1.375 ms |  48.86 ms |    1976 B |
+ IntegrateParallelSkevedSkipMeta |           4 |  23.94 ms | 0.6288 ms |  1.854 ms |  23.32 ms |    2040 B |
+```
+
+The array metadata is smaller than 64 bytes, so the chances of the first array element sharing the same cache line as part or all of the metadata is very high. 
+Whenever code needs to access an element in the array, it has to read the metadata in order to do bounds checking and to compute the offset into the memory block. So whenever we do `partialIntegrals[i]` or `partialIntegrals[i] = ?`, the code accesses that metadata.
+If the first array element is on the same cache line as the parts of the metadata used for indexing, which is likely to happen, then every time you modify that first element, any other thread’s access to the metadata is going to incur a wait for the cache line to be flushed. This means that modifying the first array element invalidates the cached metadata. `IntegrateParallelSkevedSkipMeta` do try to avoid this by pushing first element that we want to work with exactly 64 bytes (8 * 8 bytes for `double`) away from metadata location.
 
 #### Remember
 - *Design for parallelization*
@@ -210,7 +224,6 @@ Single-Instruction-Multiple-Data is concept of performing the same operation on 
 - Avoid nonsequential access
 - Consider SIMD operations (Vector<T>)
 - Speed things up for one core before you move to additional cores and parallelize
-
 
 ### AoS vs SoA
 Making programs that can use predictable memory patterns is important. It is even more important with a threaded program, so that the memory requests do not jump all over; otherwise the processing unit will be waiting for memory requests to be fulfilled.
