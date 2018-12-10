@@ -2,8 +2,8 @@
 ### Intel i7 Nehalem
 ![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPUCache.PNG)
 
-### Pipeline of a modern high-performance CPU
-![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-front-n-backend.png)
+### CPU Core Pipeline Functionality (Haswell Microarchitecture)
+![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPU-front-n-backend-2.png)
 
 ## Branch prediction
 #### Problem #1
