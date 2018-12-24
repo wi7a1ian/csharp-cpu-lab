@@ -167,7 +167,7 @@ When such unintentional cache sharing happens, parallel method should use privat
 1. The other core has to fetch the value from the memory location once again.
 
 #### Hyperthreading
-Usually L1 & L2 caches are private and are usually not shared among other cores. This is to reduces the chance of cache contention. Enabling hyperthreads will turn on *shared mode*, where the L1 data cache is competitively shared between logical processors, which in turns cause cache contention. Projects that strongly base on proper L1 cache utilization should turn this feature off. 
+L1 and usually L2 cache are private and are not shared between cores. This is to reduces the chance of cache contention. Enabling hyperthreads will turn on *shared mode* in order to make *logical processors* available for the system. L1 data cache is then competitively shared between logical processors, which in turns cause cache contention. Projects that strongly base on proper L1 cache utilization should turn this feature off. 
 
 #### Benchmark #1 - element access by `ref`/`out`
 ```
