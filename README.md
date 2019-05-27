@@ -1,4 +1,4 @@
-# csharp-cpu-lab (IN PROGRESS)
+# csharp-cpu-lab
 ### Intel i7 Nehalem
 ![](https://github.com/wi7a1ian/csharp-cpu-lab/blob/master/Img/CPUCache.PNG)
 
@@ -435,10 +435,8 @@ Size: 64 bytes. Paddings: 7 bytes (%10 of empty space)
 |===========================================|
 ```
 
-### ECS - TODO
-TODO
-
-Consider ECS like
+### [Extra] Data-oriented Development vs OOP -> ECS
+Consider using Entity Component System when working with large sets being accessed often:
 - Entitas - https://github.com/sschmid/Entitas-CSharp
 - Unity ECS
 
