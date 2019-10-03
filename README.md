@@ -448,8 +448,9 @@ Consider using Entity Component System when working with large sets being access
   - Fit the highest cache level (~8MiB)
   - Keep most “hot data” in L1/L2/L3…
   - Avoid non-sequential access
-  - Avoid indirections (pointers, dynamic polymorphism) in favor of value types and POD
-  - Avoid logical branching
+  - Avoid indirections: pointers, dynamic polymorphism
+  - Avoid dynamic allocations in favor of value types and POD
+  - Avoid runtime decision making, aka branching: most probable case first
   - Focus on contiguous memory: dense is better than sparse, use memory/object pools
 - Design for parallelization
   - Do not let threads modify cache lines from the same shared memory locations
