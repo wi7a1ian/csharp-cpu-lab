@@ -99,11 +99,48 @@ namespace CpuBasics
         }
 
         [Benchmark]
+        public unsafe Tuple<int, int> MinMaxSse()
+        {
+            var vmin = Vector128.Create(int.MaxValue);
+            var vmax = Vector128.Create(int.MinValue);
+            int vecSize = Vector128<int>.Count;
+
+            fixed (int* pNumbers = numbers)
+            {
+                int i;
+                for (i = 0; i < numbers.Length; i += vecSize)
+                {
+                    var d = Sse42.LoadVector128(pNumbers + i);
+                    vmin = Sse42.Min(vmin, d);
+                    vmax = Sse42.Max(vmax, d);
+                }
+
+                // tail is pretty much irrelevant
+                int tailLen = (numbers.Length % vecSize);
+                for (i = 0; i < tailLen; ++i)
+                {
+                    var d = Sse42.LoadScalarVector128(pNumbers + numbers.Length - i - 1);
+                    vmin = Sse42.Min(vmin, d);
+                    vmax = Sse42.Max(vmax, d);
+                }
+            }
+
+            int min = int.MaxValue, max = int.MinValue;
+            for (int i = 0; i < vecSize; ++i)
+            {
+                min = Math.Min(min, vmin.GetElement(i));
+                max = Math.Max(max, vmax.GetElement(i));
+            }
+
+            return new Tuple<int, int>(min, max);
+        }
+
+        [Benchmark]
         public unsafe Tuple<int, int> MinMaxAvx()
         {
             var vmin = Vector256.Create(int.MaxValue);
             var vmax = Vector256.Create(int.MinValue);
-            int vecSize = Vector<int>.Count;
+            int vecSize = Vector256<int>.Count;
 
             fixed (int* pNumbers = numbers)
             {
@@ -141,7 +178,7 @@ namespace CpuBasics
             // We are going to pay the price of not using Vector256 even tho stack is in use
             Span<int> vmin = stackalloc int[Vector<int>.Count]; 
             Span<int> vmax = stackalloc int[Vector<int>.Count];
-            int vecSize = Vector<int>.Count;
+            int vecSize = Vector256<int>.Count;
 
             vmin.Fill(int.MaxValue);
             vmax.Fill(int.MinValue);
