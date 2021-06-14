@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace CpuBasics
 {
@@ -93,6 +95,85 @@ namespace CpuBasics
                 min = Math.Min(min, vmin[i]);
                 max = Math.Max(max, vmax[i]);
             }
+            return new Tuple<int, int>(min, max);
+        }
+
+        [Benchmark]
+        public unsafe Tuple<int, int> MinMaxAvx()
+        {
+            var vmin = Vector256.Create(int.MaxValue);
+            var vmax = Vector256.Create(int.MinValue);
+            int vecSize = Vector<int>.Count;
+
+            fixed (int* pNumbers = numbers)
+            {
+                int i;
+                for (i = 0; i < numbers.Length; i += vecSize)
+                {
+                    var d = Avx2.LoadVector256(pNumbers + i);
+                    vmin = Avx2.Min(vmin, d);
+                    vmax = Avx2.Max(vmax, d);
+                }
+
+                // tail is pretty much irrelevant
+                int tailLen = (numbers.Length % vecSize);
+                for (i = 0; i < tailLen; ++i)
+                {
+                    var d = Vector256.Create(numbers[numbers.Length - i - 1]);
+                    vmin = Avx2.Min(vmin, d);
+                    vmax = Avx2.Max(vmax, d);
+                }
+            }
+
+            int min = int.MaxValue, max = int.MinValue;
+            for (int i = 0; i < vecSize; ++i)
+            {
+                min = Math.Min(min, vmin.GetElement(i));
+                max = Math.Max(max, vmax.GetElement(i));
+            }
+
+            return new Tuple<int, int>(min, max);
+        }
+
+        [Benchmark]
+        public unsafe Tuple<int, int> MinMaxAvxStackalloc()
+        {
+            // We are going to pay the price of not using Vector256 even tho stack is in use
+            Span<int> vmin = stackalloc int[Vector<int>.Count]; 
+            Span<int> vmax = stackalloc int[Vector<int>.Count];
+            int vecSize = Vector<int>.Count;
+
+            vmin.Fill(int.MaxValue);
+            vmax.Fill(int.MinValue);
+
+            fixed (int* pNumbers = numbers)
+            fixed (int* pVmin = vmin)
+            fixed (int* pVmax = vmax)
+            {
+                int i;
+                for (i = 0; i < numbers.Length; i += vecSize)
+                {
+                    var d = Avx2.LoadVector256(pNumbers + i);
+                    Avx2.Store(pVmin, Avx2.Min(Avx2.LoadVector256(pVmin), d));
+                    Avx2.Store(pVmax, Avx2.Max(Avx2.LoadVector256(pVmax), d));
+                }
+
+                int tailLen = (numbers.Length % vecSize);
+                for (i = 0; i < tailLen; ++i)
+                {
+                    var d = Vector256.Create(numbers[numbers.Length - i - 1]);
+                    Avx2.Store(pVmin, Avx2.Min(Avx2.LoadVector256(pVmin), d));
+                    Avx2.Store(pVmax, Avx2.Max(Avx2.LoadVector256(pVmax), d));
+                }
+            }
+
+            int min = int.MaxValue, max = int.MinValue;
+            for (int i = 0; i < vecSize; ++i)
+            {
+                min = Math.Min(min, vmin[i]);
+                max = Math.Max(max, vmax[i]);
+            }
+
             return new Tuple<int, int>(min, max);
         }
     }
